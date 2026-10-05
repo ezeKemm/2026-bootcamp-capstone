@@ -16,7 +16,7 @@ Presentation Lead: Gloria Ma
 ## Working Agreements
 
 ### Branch Management
-1. Trunk Based: Work is done in short-lived branches off `main` . Everyone manes small, regular commits to `main` with incremental updates, managed by CI/CD pipeline to keep `main` releasable.
+1. Trunk Based: Work is done in short-lived branches off `main` . Everyone makes small, regular commits to `main` with incremental updates, managed by CI/CD pipeline to keep `main` releasable.
 2. Naming: Branch names follow `<branch-type>/<short-topic>`  pattern; lower-case, hyphens, no names or commit tags; follow conventional commit types (see below); examples: `feat/customer-model` , `fix/controller-validation` , `build/build-script` .
 3. Merging: Squash merge only; all commits on a branch are squashed into one commit to `main` ; pull request title becomes commit message and branch is deleted
 4. Branch Protection: No direct commits to `main` are allowed; no force-pushes of shared branches
