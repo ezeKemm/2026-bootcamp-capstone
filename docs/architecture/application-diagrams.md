@@ -19,20 +19,17 @@ sequenceDiagram
     User->>Client: Record Interaction
     Client->>Controller: POST /api/v1/customers/CUS-1001/interaction
     Controller->>Controller: Validate request
-    alt Validation Error
-      Controller -->> Client: 400 Bad Request
-    end
-    Controller->>+Service: CustomerInteractionRequest DTO
+    Controller->>Service: CustomerInteractionRequest DTO
     Service->>DB: BEGIN transaction
-    Service->>+Repo: Find CUS-1001
-    Repo->>+DB: SELECT for CUS-1001
-    DB-->>-Repo: Return record
+    Service->>Repo: Find CUS-1001
+    Repo->>DB: SELECT for CUS-1001
+    DB-->>Repo: Return record
     Repo-->>Service: Return Customer
     Service->>Domain: Add interaction
-    Service->>+Repo: Save interaction
-    Repo->>+DB: INSERT interaction record
-    DB-->>-Repo: Confirm insertion
-    Repo-->>-Service: Return updated Customer
+    Service->>Repo: Save interaction
+    Repo->>DB: INSERT interaction record
+    DB-->>Repo: Confirm insertion
+    Repo-->>Service: Return updated Customer
     Service->>DB: COMMIT transaction
     Service->>Notif: Call Notification Service
     Notif->>Kafka: Send CustomerInteractionRecordedV1
@@ -40,6 +37,7 @@ sequenceDiagram
     Controller-->>Client: 201 Created
     Client-->>User: Render Dashboard
 ```
+
 #### Validation Error Path
 ```mermaid
 sequenceDiagram
