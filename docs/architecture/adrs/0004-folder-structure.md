@@ -14,6 +14,7 @@ Choose to use a vertical-slice based folder structure
 A vertical slice represents a single business operation encapsulated in one folder
 
 Current Proposed Structure:
+```plaintext
 crm/
 ├── .github/    # GitHub Actions CI/CD workflows, CODEOWNERS
 ├── docs/                  
@@ -49,3 +50,4 @@ crm/
 │   │       └── shared/   
 │   └── package.json
 └── infra/                    # Infrastructure as Code: Ansible, Terraform, Kubernetes
+```
