@@ -1,0 +1,13 @@
+# First user owns directory, second is backup reviewer
+# Documentation requires approval by all members
+
+*                       @Ekish33 @ezekemm
+/backend/               @ezekemm @qu1ck-f0x
+/frontend/              @Ekish33 @joelhoskins36
+/infra/                 @ezekemm @qu1ck-f0x
+/openshift/             @joelhoskins36 @ezekemm
+/defense/               @qu1ck-f0x @joelhoskins36
+/reports/               @qu1ck-f0x @ezekemm
+/.github/               @ezekemm @Ekish33
+**/Dockerfile*          @ezekemm @Ekish33
+/docs/                  @joelhoskins36 @qu1ck-f0x @Ekish33 @ezekemm
