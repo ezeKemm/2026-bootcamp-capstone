@@ -46,4 +46,12 @@ Presentation Lead: Gloria Ma
 22. Ownership: Each part of the project has an owner and a reviewer.
 
 ### Definition of Done
-TODO
+- [ ]  `POST` for Amina returns 201 and a Location header
+- [ ]  Invalid body returns 400 Problem details and does not persist or publish
+- [ ]  CUS-9999 returns 404 and does not persist or publish
+- [ ]  Flyway migration applied; row exists; generated SQL inspected once
+- [ ]  One `CustomerInteractionRecordedV1` per successful create, keyed by customer id, correlation id present
+- [ ]  Consumer dedupes on `eventId`, retries are bounded, poison messages to the a DLT (dead letter topic)
+- [ ]  Unit, MockMvc, JPA, and Kafka testx green twice
+- [ ]  docs/backend-demo.md lets a peer reproduce it with no verbal coaching
+- [ ]  No secrets in the repo, no passwords in the code, no PII in the fixtures, no credentials in the demo.http
