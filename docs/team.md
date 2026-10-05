@@ -22,7 +22,7 @@ Presentation Lead: Gloria Ma
 4. Branch Protection: No direct commits to `main` are allowed; no force-pushes of shared branches
 
 ### Commits
-5. Conventional Commits: commits to main follow `type(scope): summary` ; the scope and body are optional; written in imperative mood; no punctuation to end; keep short and concise.
+5. [Conventional Commits](https://gist.github.com/qoomon/5dfcdf8eec66a051ecd85625518cfd13): commits to main follow `type(scope): summary` ; the scope and body are optional; written in imperative mood; no punctuation to end; keep short and concise.
 6. Commit types: `feat` , `fix` , `docs` , `refactor` , `test` , `build` , `ci` , `chore` , `perf`
 7. Commit scopes: `backend` , `frontend` , `openshift` , `infra` , `ci` , `docs` .
 8. Breaking changes are marked by ! after scope; added context is described in `BREAKING CHANGE:` footer in commit message.
