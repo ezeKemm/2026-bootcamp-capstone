@@ -1,0 +1,18 @@
+# Operating System Files
+.DS_Store
+Thumbs.db
+Desktop.ini
+.Spotlight-V100
+.Trashes
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.iws
+*.iml
+*.ipr
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
