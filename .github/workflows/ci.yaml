@@ -28,10 +28,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
+          name: backend-test-reports
           path: |
             **/target/surefire-reports/**
             **/target/failsafe-reports/**
+          if-no-files-found: ignore
   backend-package:
     needs: backend-verify
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
@@ -58,3 +59,26 @@ jobs:
           path: |
             backend/target/*.jar
             backend/target/SHA256SUMS
+  frontend-verify:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Frontend Tests
+        run: npm test -- --watch=false
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-test-reports
+          path: frontend/coverage/
+          if-no-files-found: ignore
