@@ -1,0 +1,19 @@
+# Lints GitHub Action workflows to ensure durable CI/CD pipeline
+name: 'actionlint'
+
+on:
+  pull_request:
+    paths: [".github/workflows/**"]
+  push:
+    branches: [main]
+    paths: [".github/workflows/**"]
+
+jobs:
+  actionlint:
+    name: Lint Action workflows
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint workflows using Docker image
+        run: docker run --rm -v $(pwd):/repo --workdir /repo rhysd/actionlint:1.7.12 -color
