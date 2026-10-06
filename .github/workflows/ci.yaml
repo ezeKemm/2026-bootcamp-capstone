@@ -6,10 +6,55 @@ on:
     branches: [main]
     tags: ["v*"]
 
+permissions:
+  contents: read
+
 jobs:
-  todo:
-    name: TODO
+  backend-verify:
     runs-on: ubuntu-24.04
     steps:
-      - name: TODO
-        run: echo "TODO"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: "backend/pom.xml"
+      - name: Verify backend
+        run: |
+          cd backend
+          bash ./mvnw -B -ntp clean verify
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            **/target/surefire-reports/**
+            **/target/failsafe-reports/**
+  backend-package:
+    needs: backend-verify
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: "backend/pom.xml"
+      - name: Package once + checksum
+        run: |
+          cd backend
+          bash ./mvnw -B -ntp -DskipTests package
+          sha256sum target/*.jar > target/SHA256SUMS
+          echo "commit=${GITHUB_SHA}" >> target/SHA256SUMS
+          echo "run=${GITHUB_RUN_NUMBER}" >> target/SHA256SUMS
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: crm-jar
+          path: |
+            backend/target/*.jar
+            backend/target/SHA256SUMS
