@@ -7,6 +7,7 @@
     <dt>Status</dt><dd>{{ c.status }}</dd>
   </dl>
 </section>
+<app-record-interaction-form [customerId]="c.customerId" />
 } @else {
 <p role="alert">Customer {{ id() }} was not found.</p>
 }

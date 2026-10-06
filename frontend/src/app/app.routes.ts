@@ -1,13 +1,21 @@
 import { Routes } from '@angular/router';
 
-// TODO: (customers, interactions, login) routes get added here later.
-//added dummy customer route for now to test the lazy loading of the customer profile component
+// TODO: interactions and login routes get added here later.
 export const routes: Routes = [
+  {
+    path: '',
+    loadComponent: () => import('./features/home/home').then((m) => m.Home),
+  },
   {
     path: 'customers/:id',
     loadComponent: () =>
       import('./features/customers/customer-profile/customer-profile').then(
         (m) => m.CustomerProfile,
       ),
+  },
+  {
+    // Catch-all: must stay last.
+    path: '**',
+    loadComponent: () => import('./features/not-found/not-found').then((m) => m.NotFound),
   },
 ];
