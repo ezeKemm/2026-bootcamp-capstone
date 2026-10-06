@@ -29,6 +29,9 @@
 	<properties>
 		<java.version>21</java.version>
 		<spring-cloud.version>2025.1.3</spring-cloud.version>
+		<!-- Overrides the Tomcat version managed by Spring Boot 4.1.1 (11.0.24). 11.0.25 fixes CVE-2026-65637.
+     		 TODO(vulnerability): Remove this when the Spring Boot parent ships Tomcat 11.0.25 or later. -->
+		<tomcat.version>11.0.25</tomcat.version>
 	</properties>
 	<dependencies>
 		<dependency>
