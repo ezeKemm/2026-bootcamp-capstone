@@ -1,0 +1,29 @@
+<section aria-labelledby="lookup-heading">
+  <h2 id="lookup-heading">Look up a customer</h2>
+
+  <form [formGroup]="form" (ngSubmit)="lookUp()" novalidate>
+    <label for="customer-id">Customer ID</label>
+    <div class="row">
+      <input
+        id="customer-id"
+        type="text"
+        formControlName="customerId"
+        autocomplete="off"
+        placeholder="e.g. CUS-1001"
+        [attr.aria-invalid]="showError()"
+        [attr.aria-describedby]="showError() ? 'customer-id-error' : null"
+      />
+      <button type="submit">Go</button>
+    </div>
+    @if (showError()) {
+    <p id="customer-id-error" class="error">Enter a customer ID.</p>
+    }
+  </form>
+
+  <p class="hint">
+    Sample customers:
+    @for (id of sampleIds; track id) {
+    <a [routerLink]="['/customers', id]">{{ id }}</a>
+    }
+  </p>
+</section>
