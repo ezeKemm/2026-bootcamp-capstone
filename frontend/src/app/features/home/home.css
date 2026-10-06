@@ -1,0 +1,8 @@
+section { max-width: 32rem; }
+form { display: grid; gap: 0.5rem; }
+.row { display: flex; gap: 0.5rem; }
+input { flex: 1; font: inherit; padding: 0.5rem; }
+button { font: inherit; padding: 0.5rem 1rem; }
+.error { margin: 0; color: #b00020; }
+.hint { color: #555; }
+.hint a { margin-left: 0.5rem; }

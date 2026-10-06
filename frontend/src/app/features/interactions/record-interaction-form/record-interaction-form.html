@@ -1,0 +1,53 @@
+<form [formGroup]="form" (ngSubmit)="submit()" aria-labelledby="record-heading" novalidate>
+  <h3 id="record-heading">Record interaction</h3>
+
+  <div class="field">
+    <label for="channel">Channel</label>
+    <select
+      id="channel"
+      formControlName="channel"
+      [attr.aria-invalid]="showError('channel')"
+      [attr.aria-describedby]="showError('channel') ? 'channel-error' : null"
+    >
+      <option value="" disabled>Choose a channel</option>
+      @for (c of channels; track c) {
+      <option [value]="c">{{ c }}</option>
+      }
+    </select>
+    @if (showError('channel')) {
+    <p id="channel-error" class="error">Choose a channel.</p>
+    }
+  </div>
+
+  <div class="field">
+    <label for="summary">Summary</label>
+    <textarea
+      id="summary"
+      rows="4"
+      formControlName="summary"
+      [attr.maxlength]="summaryMaxLength"
+      [attr.aria-invalid]="showError('summary')"
+      [attr.aria-describedby]="showError('summary') ? 'summary-error' : 'summary-count'"
+    ></textarea>
+    <p id="summary-count" class="hint">
+      {{ form.controls.summary.value.length }} / {{ summaryMaxLength }}
+    </p>
+    @if (showError('summary')) {
+    <p id="summary-error" class="error">
+      @if (form.controls.summary.hasError('maxlength')) {
+      Keep the summary under {{ summaryMaxLength }} characters.
+      } @else {
+      Enter a summary.
+      }
+    </p>
+    }
+  </div>
+
+  <button type="submit">Record interaction</button>
+
+  @if (lastRecorded(); as r) {
+  <p role="status" class="success">
+    Recorded {{ r.channel }} interaction for {{ r.customerId }}. (Not saved yet; API not connected.)
+  </p>
+  }
+</form>
