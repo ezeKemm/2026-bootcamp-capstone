@@ -1,0 +1,12 @@
+@if (customer(); as c) {
+<section aria-labelledby="customer-name">
+  <h2 id="customer-name">{{ c.fullName }}</h2>
+  <dl>
+    <dt>Customer ID</dt><dd>{{ c.customerId }}</dd>
+    <dt>Email</dt><dd>{{ c.email }}</dd>
+    <dt>Status</dt><dd>{{ c.status }}</dd>
+  </dl>
+</section>
+} @else {
+<p role="alert">Customer {{ id() }} was not found.</p>
+}
