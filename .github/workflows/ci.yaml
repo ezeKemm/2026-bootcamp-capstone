@@ -45,7 +45,7 @@ jobs:
           cache: maven
           cache-dependency-path: "backend/pom.xml"
       - name: Package once + checksum
-        run: Upload build artifacts
+        run: |
           cd backend
           bash ./mvnw -B -ntp -DskipTests package
           sha256sum target/*.jar > target/SHA256SUMS
