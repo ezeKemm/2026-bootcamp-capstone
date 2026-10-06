@@ -1,0 +1,44 @@
+name: 'CI'
+
+on:
+  # amannn/action-semantic-pull-request suggests `pull_request_target` when dealing with public repos that can be forked
+  # for capstone scope, pull_request suffices
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+jobs:
+  # Checks pull request title follows Conventional Commits according to working agreements (`docs/team.md`)
+  pr-title:
+    name: Validate PR title matches convention
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: amannn/action-semantic-pull-request@4e8becf # v6.1.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            refactor
+            perf
+            docs
+            test
+            build
+            ci
+            chore
+            docs
+          scopes: |
+            backend
+            frontend
+            openshift
+            infra
+            docs
+            ci
+          requireScope: false
+          subjectPattern: ^(?![A-Z])(?!.*\.$).+$
+          subjectPatternError: |
+            Subject must start with a lowercase letter and not end with a punctuation
