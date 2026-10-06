@@ -3,15 +3,15 @@ Northstar CRM is a slice of a customer management platform for a bank's service 
 
 ## Stack
 
-| Layer | Choice |
-| --- | --- |
-| Frontend | Angular 21, Node 22 LTS, TypeScript |
-| API | Spring Boot 4.1.1 on Java 21 |
-| Persistence | PostgreSQL 16, Spring Data JPA, Flyway |
-| Messaging | Apache Kafka 3.9 |
-| Runtime | OpenShift |
-| CI/CD | GitHub Actions |
-| Infrastructure | Terraform, Ansible |
+| Layer | Choice                                  |
+| --- |-----------------------------------------|
+| Frontend | Angular 22, Node 22 LTS, TypeScript 6.0 |
+| API | Spring Boot 4.1.1 on Java 21            |
+| Persistence | PostgreSQL 16, Spring Data JPA, Flyway  |
+| Messaging | Apache Kafka 3.9                        |
+| Runtime | OpenShift                               |
+| CI/CD | GitHub Actions                          |
+| Infrastructure | Terraform, Ansible                      |
 
 ## Non-goals
 
