@@ -73,6 +73,9 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
         run: npm ci
+        # npm test doesn't catch certain errors ng build will
+      - name: Build production copy
+        run: npx ng build --configuration=production
       - name: Frontend Tests
         run: npm test -- --watch=false
       - name: Upload test reports
