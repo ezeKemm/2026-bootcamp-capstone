@@ -30,9 +30,9 @@ jobs:
         with:
           name: backend-test-reports
           path: |
-            **/target/surefire-reports/**
-            **/target/failsafe-reports/**
-          if-no-files-found: ignore
+            backend/target/surefire-reports/**
+            backend/target/failsafe-reports/**
+          if-no-files-found: warn
   backend-package:
     needs: backend-verify
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
