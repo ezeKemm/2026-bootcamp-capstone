@@ -192,7 +192,7 @@ components:
       required: true
       description: OPEN - UUID (per UML) or `CUS-1001` style (per fixtures)?
       schema:
-        type: string
+        $ref: '#/components/schemas/Uuid'
       examples:
         fixture:
           value: CUS-1001
@@ -214,6 +214,9 @@ components:
         type: string
 
   schemas:
+    Uuid:
+      type: string
+      format: uuid
     CustomerStatus:
       type: string
       enum: [ACTIVE, PROSPECT]
@@ -223,7 +226,7 @@ components:
       required: [customerId, fullName, email, status]
       properties:
         customerId:
-          type: string
+          $ref: '#/components/schemas/Uuid'
         fullName:
           type: string
         email:
@@ -258,7 +261,7 @@ components:
           type: string
           format: uuid
         customerId:
-          type: string
+          $ref: '#/components/schemas/Uuid'
         channel:
           $ref: '#/components/schemas/InteractionChannel'
         summary:
