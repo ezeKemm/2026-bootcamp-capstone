@@ -1,6 +1,12 @@
 package com.northstar.crm.domain;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
+
 
 @Entity
 @Table(name = "customers")

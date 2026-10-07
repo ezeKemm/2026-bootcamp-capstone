@@ -2,12 +2,12 @@ package com.northstar.crm.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
-import org.jspecify.annotations.NonNull;
 
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.UUID;
 
+// Identity of a {@link Customer}. Wraps UUID.
 @Embeddable
 public record CustomerId(
     // nullable = false is a schema hint but won't validate plain Java
