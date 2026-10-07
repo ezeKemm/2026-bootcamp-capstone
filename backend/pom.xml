@@ -157,6 +157,7 @@
 								<format>HTML</format>
 								<format>JSON</format>
 							</formats>
+							<suppressionFile>dependency-check-suppressions.xml</suppressionFile>
 						</configuration>
 						<executions>
 							<execution>
