@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Dependency-Check suppressions. Each entry needs a reason, who agreed, and a date to review.
+     Accepted findings are also listed in docs/residual-risk.md. -->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.4.xsd">
+    <suppress>
+        <notes><![CDATA[
+        False positive. CVE-2026-53914 is in the Kotlin Gradle Plugin (build-time cache deserialization),
+        not in the kotlin-stdlib runtime library. Matched only by the jetbrains:kotlin CPE.
+        Agreed by: Ezekiel Maroclo-Kemmerling (@ezekemm) Ethan Kish (@ekish33).
+        Review by: 2026-10-07.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin-stdlib(-jdk[78])?@.*$</packageUrl>
+        <cve>CVE-2026-53914</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+        False positive. CVE-2022-31691 affects Spring Tools 4 for Eclipse (4.16.0 and below) and some VS Code
+        extensions, not spring-boot-devtools. Matched only because the CPE spring_tools shares the number 4.1.1.
+        Devtools is also optional and excluded from the repackaged jar.
+        Agreed by: Ezekiel Maroclo-Kemmerling (@ezekemm) Ethan Kish (@ekish33).
+        Review by: 2026-10-07.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.boot/spring-boot-devtools@.*$</packageUrl>
+        <cve>CVE-2022-31691</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+        Not applicable. CVE-2026-41115 is the Kafka broker validating the wrong ACL permission for the
+        CONSUMER_GROUP_DESCRIBE API (Apache Kafka CVE list, affects 4.0.0 to 4.3.0). The application bundles only the
+        client libraries (kafka-clients and kafka-streams) and does not run a broker. Pinned to this version so a Kafka upgrade is reviewed again.
+        Agreed by: Ezekiel Maroclo-Kemmerling (@ezekemm) Ethan Kish (@ekish33).
+        Review by: 2026-10-07.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.kafka/kafka-(clients|streams)@4\.2\.1$</packageUrl>
+        <cve>CVE-2026-41115</cve>
+    </suppress>
+</suppressions>
