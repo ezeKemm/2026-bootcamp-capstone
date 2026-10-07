@@ -30,7 +30,7 @@ public class CustomerInteraction {
     @Column(name = "summary", nullable = false, updatable = false, length = SUMMARY_MAX_LENGTH)
     private String summary;
 
-    @Column(name = "summary", nullable = false, updatable = false, length = ACTOR_MAX_LENGTH)
+    @Column(name = "actor", nullable = false, updatable = false, length = ACTOR_MAX_LENGTH)
     private String actor;
 
     @Column(name = "occurred_at", nullable = false, updatable = false)
