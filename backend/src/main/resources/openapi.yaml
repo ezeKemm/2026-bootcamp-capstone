@@ -1,0 +1,367 @@
+openapi: 3.1.0
+info:
+  title: Northstar CRM API
+  version: 0.1.0-draft
+  summary: Customer profile, activate, and record-interaction (CAP-12) endpoints.
+  description: |
+    DRAFT contract between the Angular frontend and the Spring Boot backend.
+    Written from the team sequence/UML diagrams, team route notes, and the current frontend code.
+    Backend owners: please correct anything that doesn't match the real API.
+
+    Endpoints in scope:
+      - GET  /api/v1/customers/{customerId}               get a customer
+      - POST /api/v1/customers/{customerId}/activate      PROSPECT -> ACTIVE
+      - POST /api/v1/customers/{customerId}/interaction   record an interaction
+    Not yet in scope: POST /api/v1/customers (create customer).
+
+    Open questions (marked "OPEN" in descriptions below):
+      1. Customer IDs: UUID (per UML) or `CUS-1001` style (per fixtures)?
+      2. Allowed `channel` values and max `summary` length.
+      3. Is `actor` taken from the bearer token (assumed) or sent in the body?
+      4. What exactly triggers 409 and 422 on record-interaction?
+      5. Activate on an already-ACTIVE customer: 409 (assumed) or 200 no-op?
+      6. Should the frontend send a unique `X-Correlation-Id` per request?
+      7. Is there an endpoint to list a customer's interactions?
+servers:
+  - url: http://localhost:8080
+    description: Local backend
+  - url: /
+    description: Same origin behind the OpenShift Route
+security:
+  - bearerAuth: []
+tags:
+  - name: Customers
+  - name: Interactions
+paths:
+  /api/v1/customers/{customerId}:
+    parameters:
+      - $ref: '#/components/parameters/CustomerId'
+      - $ref: '#/components/parameters/CorrelationId'
+    get:
+      tags: [Customers]
+      operationId: getCustomer
+      summary: Get one customer's profile
+      responses:
+        '200':
+          description: Customer found.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+              examples:
+                active:
+                  value:
+                    customerId: CUS-1001
+                    fullName: Amina Example
+                    email: amina@example.com
+                    status: ACTIVE
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/CustomerNotFound'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /api/v1/customers/{customerId}/activate:
+    parameters:
+      - $ref: '#/components/parameters/CustomerId'
+      - $ref: '#/components/parameters/CorrelationId'
+    post:
+      tags: [Customers]
+      operationId: activateCustomer
+      summary: Activate a customer (PROSPECT -> ACTIVE)
+      description: |
+        No request body. Maps to `Customer.activate()` in the UML.
+        OPEN - what happens if the customer is already ACTIVE (409 assumed below)?
+      responses:
+        '200':
+          description: Customer is now ACTIVE. Returns the updated customer.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+              examples:
+                activated:
+                  value:
+                    customerId: CUS-1002
+                    fullName: Ravi Example
+                    email: ravi@example.com
+                    status: ACTIVE
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/CustomerNotFound'
+        '409':
+          description: Customer is already ACTIVE (OPEN - confirm).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                title: Customer already active
+                status: 409
+                detail: Customer CUS-1001 is already ACTIVE.
+                correlationId: lab-request-001
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /api/v1/customers/{customerId}/interaction:
+    parameters:
+      - $ref: '#/components/parameters/CustomerId'
+      - $ref: '#/components/parameters/CorrelationId'
+    post:
+      tags: [Interactions]
+      operationId: recordInteraction
+      summary: Record an interaction with a customer (CAP-12)
+      description: |
+        `occurredAt` and `interactionId` are set by the server.
+        `actor` is taken from the authenticated user (OPEN: confirm).
+        `correlationId` is taken from the `X-Correlation-Id` header.
+        Path is singular (`/interaction`) per the sequence diagram and team route notes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewInteraction'
+            examples:
+              phoneCall:
+                value:
+                  channel: PHONE
+                  summary: Called about renewal.
+      responses:
+        '201':
+          description: Interaction recorded.
+          headers:
+            Location:
+              description: URL of the new interaction (if the backend exposes one).
+              schema:
+                type: string
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Interaction'
+              examples:
+                recorded:
+                  value:
+                    interactionId: 6f1c2b7e-8d3a-4c51-9b2e-0a7d4e9f1c23
+                    customerId: CUS-1001
+                    channel: PHONE
+                    summary: Called about renewal.
+                    actor: demo.user
+                    occurredAt: '2026-10-07T14:30:00Z'
+                    correlationId: lab-request-001
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/CustomerNotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Access token from login. OPEN - login endpoint and token format TBD.
+
+  parameters:
+    CustomerId:
+      name: customerId
+      in: path
+      required: true
+      description: OPEN - UUID (per UML) or `CUS-1001` style (per fixtures)?
+      schema:
+        type: string
+      examples:
+        fixture:
+          value: CUS-1001
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: |
+        Traces one request across frontend, backend and logs.
+        The frontend interceptor always sends it. Echoed back on responses.
+      schema:
+        type: string
+      example: lab-request-001
+
+  headers:
+    CorrelationId:
+      description: Echo of the request's `X-Correlation-Id`.
+      schema:
+        type: string
+
+  schemas:
+    CustomerStatus:
+      type: string
+      enum: [ACTIVE, PROSPECT]
+
+    Customer:
+      type: object
+      required: [customerId, fullName, email, status]
+      properties:
+        customerId:
+          type: string
+        fullName:
+          type: string
+        email:
+          type: string
+          format: email
+        status:
+          $ref: '#/components/schemas/CustomerStatus'
+
+    InteractionChannel:
+      type: string
+      description: OPEN - backend UML types this as a plain String; values are a frontend proposal.
+      enum: [PHONE, EMAIL, MEETING]
+
+    NewInteraction:
+      type: object
+      required: [channel, summary]
+      additionalProperties: false
+      properties:
+        channel:
+          $ref: '#/components/schemas/InteractionChannel'
+        summary:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Free text; must not be blank. OPEN - confirm max length.
+
+    Interaction:
+      type: object
+      required: [interactionId, customerId, channel, summary, actor, occurredAt, correlationId]
+      properties:
+        interactionId:
+          type: string
+          format: uuid
+        customerId:
+          type: string
+        channel:
+          $ref: '#/components/schemas/InteractionChannel'
+        summary:
+          type: string
+        actor:
+          type: string
+          description: Who recorded it (from the authenticated user).
+        occurredAt:
+          type: string
+          format: date-time
+          description: Set by the server.
+        correlationId:
+          type: string
+
+    ProblemDetails:
+      type: object
+      description: RFC 9457 Problem Details, returned as `application/problem+json`.
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          default: about:blank
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        correlationId:
+          type: string
+        errors:
+          type: array
+          description: Per-field validation errors so the form can show them next to the right input.
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+
+  responses:
+    BadRequest:
+      description: Request is malformed or fails validation (e.g. blank summary, unknown channel).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Validation failed
+            status: 400
+            detail: One or more fields are invalid.
+            correlationId: lab-request-001
+            errors:
+              - field: summary
+                message: must not be blank
+    Unauthorized:
+      description: Missing or invalid bearer token.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Forbidden:
+      description: Authenticated, but not allowed to do this.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    CustomerNotFound:
+      description: No customer with that ID.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Customer not found
+            status: 404
+            detail: No customer with id CUS-9999.
+            correlationId: lab-request-001
+    Conflict:
+      description: OPEN - e.g. duplicate submission with a correlation ID already used.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    UnprocessableEntity:
+      description: OPEN - well-formed but breaks a business rule (rule TBD).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    ServiceUnavailable:
+      description: Backend or a dependency (database, Kafka) is temporarily unavailable; safe to retry.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema:
+            type: integer
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
