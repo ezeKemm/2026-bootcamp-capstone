@@ -23,7 +23,7 @@ jobs:
       - name: Maven Dependency Check
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: ./mvnw -B -ntp -Psecurity-scan -DskipTests -DnvdApiKey=$NVD_API_KEY dependency-check:check
+        run: bash ./mvnw -B -ntp -Psecurity-scan -DskipTests -DnvdApiKey="$NVD_API_KEY" dependency-check:check
       - name: Upload scan report
         if: always()
         uses: actions/upload-artifact@v7
