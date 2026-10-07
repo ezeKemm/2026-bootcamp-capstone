@@ -4,10 +4,33 @@
   <dl>
     <dt>Customer ID</dt><dd>{{ c.customerId }}</dd>
     <dt>Email</dt><dd>{{ c.email }}</dd>
-    <dt>Status</dt><dd>{{ c.status }}</dd>
+    <dt>Status</dt><dd class="status">{{ c.status }}</dd>
   </dl>
+
+  @if (canActivate()) {
+  <button type="button" class="activate" (click)="activate()">Activate customer</button>
+  }
 </section>
-<app-record-interaction-form [customerId]="c.customerId" />
+
+<section aria-labelledby="timeline-heading">
+  <h3 id="timeline-heading">{{ isAdmin() ? 'Full timeline' : 'My interactions' }}</h3>
+  <ol class="timeline">
+    @for (i of interactions(); track i.interactionId) {
+    <li>
+      <strong>{{ i.channel }}</strong> · {{ i.occurredAt | date: 'medium' }} · by {{ i.actor }}
+      <p>{{ i.summary }}</p>
+    </li>
+    } @empty {
+    <li class="empty">No interactions yet.</li>
+    }
+  </ol>
+</section>
+
+@if (canRecord()) {
+<app-record-interaction-form [customerId]="c.customerId" (recorded)="onRecorded($event)" />
+} @else if (isAgent()) {
+<p class="hint">Interactions can only be recorded for ACTIVE customers.</p>
+}
 } @else {
 <p role="alert">Customer {{ id() }} was not found.</p>
 }
