@@ -141,4 +141,32 @@
 		</plugins>
 	</build>
 
+	<profiles>
+		<profile>
+			<id>security-scan</id>
+			<build>
+				<plugins>
+					<!-- OWASP Dependency-Check. CVSS 7.0 and above is High and Critical. -->
+					<plugin>
+						<groupId>org.owasp</groupId>
+						<artifactId>dependency-check-maven</artifactId>
+						<version>13.0.0</version>
+						<configuration>
+							<failBuildOnCVSS>7</failBuildOnCVSS>
+							<formats>
+								<format>HTML</format>
+								<format>JSON</format>
+							</formats>
+							<suppressionFile>dependency-check-suppressions.xml</suppressionFile>
+						</configuration>
+						<executions>
+							<execution>
+								<goals><goal>check</goal></goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>
