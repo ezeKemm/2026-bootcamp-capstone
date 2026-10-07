@@ -61,12 +61,14 @@ public class CustomerInteraction {
     public Instant getOccurredAt() { return occurredAt; }
     public String getCorrelationId() { return correlationId; }
 
+    @Override
     public boolean equals(Object o) {
         return this == o ||
             (o instanceof CustomerInteraction other
                 && interactionId.equals(other.interactionId));
     }
 
+    @Override
     public int hashCode() {
         return interactionId.hashCode();
     }
