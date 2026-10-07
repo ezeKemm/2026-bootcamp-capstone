@@ -6,22 +6,6 @@ info:
   description: |
     DRAFT contract between the Angular frontend and the Spring Boot backend.
     Written from the team sequence/UML diagrams, team route notes, and the current frontend code.
-    Backend owners: please correct anything that doesn't match the real API.
-
-    Endpoints in scope:
-      - GET  /api/v1/customers/{customerId}               get a customer
-      - POST /api/v1/customers/{customerId}/activate      PROSPECT -> ACTIVE
-      - POST /api/v1/customers/{customerId}/interaction   record an interaction
-    Not yet in scope: POST /api/v1/customers (create customer).
-
-    Open questions (marked "OPEN" in descriptions below):
-      1. Customer IDs: UUID (per UML) or `CUS-1001` style (per fixtures)?
-      2. Allowed `channel` values and max `summary` length.
-      3. Is `actor` taken from the bearer token (assumed) or sent in the body?
-      4. What exactly triggers 409 and 422 on record-interaction?
-      5. Activate on an already-ACTIVE customer: 409 (assumed) or 200 no-op?
-      6. Should the frontend send a unique `X-Correlation-Id` per request?
-      7. Is there an endpoint to list a customer's interactions?
 servers:
   - url: http://localhost:8080
     description: Local backend
@@ -54,7 +38,7 @@ paths:
               examples:
                 active:
                   value:
-                    customerId: CUS-1001
+                    customerId: 5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11
                     fullName: Amina Example
                     email: amina@example.com
                     status: ACTIVE
@@ -91,7 +75,7 @@ paths:
               examples:
                 activated:
                   value:
-                    customerId: CUS-1002
+                    customerId: 7d3b8c73-99f7-4d06-8ce5-f8d8668ed2a1
                     fullName: Ravi Example
                     email: ravi@example.com
                     status: ACTIVE
@@ -110,7 +94,7 @@ paths:
               example:
                 title: Customer already active
                 status: 409
-                detail: Customer CUS-1001 is already ACTIVE.
+                detail: Customer 5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11 is already ACTIVE.
                 correlationId: lab-request-001
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
@@ -157,7 +141,7 @@ paths:
                 recorded:
                   value:
                     interactionId: 6f1c2b7e-8d3a-4c51-9b2e-0a7d4e9f1c23
-                    customerId: CUS-1001
+                    customerId: 5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11
                     channel: PHONE
                     summary: Called about renewal.
                     actor: demo.user
@@ -190,12 +174,12 @@ components:
       name: customerId
       in: path
       required: true
-      description: OPEN - UUID (per UML) or `CUS-1001` style (per fixtures)?
+      description: Unique customer UUID.
       schema:
         $ref: '#/components/schemas/Uuid'
       examples:
         fixture:
-          value: CUS-1001
+          value: 5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11
     CorrelationId:
       name: X-Correlation-Id
       in: header
@@ -217,6 +201,8 @@ components:
     Uuid:
       type: string
       format: uuid
+      description: Universally unique identifier.
+      example: 5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11
     CustomerStatus:
       type: string
       enum: [ACTIVE, PROSPECT]
@@ -343,7 +329,7 @@ components:
           example:
             title: Customer not found
             status: 404
-            detail: No customer with id CUS-9999.
+            detail: No customer with id 8a9c7d2e-0f22-41c7-b1ef-6d1f3ac4d2ce.
             correlationId: lab-request-001
     Conflict:
       description: OPEN - e.g. duplicate submission with a correlation ID already used.
