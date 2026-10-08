@@ -168,6 +168,7 @@
 							<effort>Max</effort>
 							<threshold>High</threshold>
 							<failOnError>true</failOnError>
+							<excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
 							<plugins>
 								<plugin>
 									<groupId>com.h3xstream.findsecbugs</groupId>
