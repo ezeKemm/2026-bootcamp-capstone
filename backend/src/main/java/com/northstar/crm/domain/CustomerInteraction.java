@@ -36,7 +36,7 @@ public class CustomerInteraction {
     @Column(name = "occurred_at", nullable = false, updatable = false)
     private Instant occurredAt;
 
-    @Column(name = "correlationId", nullable = false, updatable = false, length = CORRELATION_ID_MAX_LENGTH)
+    @Column(name = "correlation_id", nullable = false, updatable = false, length = CORRELATION_ID_MAX_LENGTH)
     private String correlationId;
 
     protected CustomerInteraction() {} // for JPA
