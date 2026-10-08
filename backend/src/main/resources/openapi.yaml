@@ -6,6 +6,31 @@ info:
   description: |
     DRAFT contract between the Angular frontend and the Spring Boot backend.
     Written from the team sequence/UML diagrams, team route notes, and the current frontend code.
+    Backend owners: please correct anything that doesn't match the real API.
+
+    Endpoints in scope:
+      - POST /api/v1/auth/login                            get an access token (public)
+      - GET  /api/v1/customers/{customerId}                get a customer
+      - POST /api/v1/customers/{customerId}/activate       PROSPECT -> ACTIVE
+      - GET  /api/v1/customers/{customerId}/interactions   list a customer's interactions
+      - POST /api/v1/customers/{customerId}/interaction    record an interaction
+    Not yet in scope: POST /api/v1/customers (create customer).
+
+    Roles (from docs backlog): AGENT and ADMIN.
+      - Both: read customers, activate a PROSPECT.
+      - AGENT only: record an interaction (ACTIVE customers only); lists only their own interactions.
+      - ADMIN: reads every interaction (full timeline); cannot record.
+      - Nobody can delete an interaction (audit events are permanent).
+    The backend must enforce these rules; the frontend only hides options.
+
+    Open questions (marked "OPEN" in descriptions below):
+      1. Customer IDs: UUID (per UML) or `CUS-1001` style (per fixtures)?
+      2. Allowed `channel` values and max `summary` length.
+      3. Is `actor` taken from the bearer token (assumed) or sent in the body?
+      4. What exactly triggers 409 and 422 on record-interaction?
+      5. Activate on an already-ACTIVE customer: 409 (assumed) or 200 no-op?
+      6. Should the frontend send a unique `X-Correlation-Id` per request?
+      7. Demo users: `agent1`/`admin1` (Lab 28)? Frontend demo currently uses `agent`/`admin`.
 servers:
   - url: http://localhost:8080
     description: Local backend
@@ -14,9 +39,59 @@ servers:
 security:
   - bearerAuth: []
 tags:
+  - name: Auth
   - name: Customers
   - name: Interactions
 paths:
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      summary: Sign in and get a bearer token
+      description: |
+        Public endpoint (no token needed). Request/response shape follows Lab 28;
+        path is versioned under `/api/v1` like every other route.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              agent:
+                value:
+                  username: agent1
+                  password: agent1
+      responses:
+        '200':
+          description: Signed in.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+              examples:
+                token:
+                  value:
+                    accessToken: '<redacted>'
+                    tokenType: Bearer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Wrong username or password.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                title: Invalid username or password
+                status: 401
+                correlationId: lab-request-001
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
   /api/v1/customers/{customerId}:
     parameters:
       - $ref: '#/components/parameters/CustomerId'
@@ -38,7 +113,7 @@ paths:
               examples:
                 active:
                   value:
-                    customerId: 5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11
+                    customerId: CUS-1001
                     fullName: Amina Example
                     email: amina@example.com
                     status: ACTIVE
@@ -61,6 +136,7 @@ paths:
       summary: Activate a customer (PROSPECT -> ACTIVE)
       description: |
         No request body. Maps to `Customer.activate()` in the UML.
+        Roles: AGENT and ADMIN.
         OPEN - what happens if the customer is already ACTIVE (409 assumed below)?
       responses:
         '200':
@@ -75,7 +151,7 @@ paths:
               examples:
                 activated:
                   value:
-                    customerId: 7d3b8c73-99f7-4d06-8ce5-f8d8668ed2a1
+                    customerId: CUS-1002
                     fullName: Ravi Example
                     email: ravi@example.com
                     status: ACTIVE
@@ -94,8 +170,54 @@ paths:
               example:
                 title: Customer already active
                 status: 409
-                detail: Customer 5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11 is already ACTIVE.
+                detail: Customer CUS-1001 is already ACTIVE.
                 correlationId: lab-request-001
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /api/v1/customers/{customerId}/interactions:
+    parameters:
+      - $ref: '#/components/parameters/CustomerId'
+      - $ref: '#/components/parameters/CorrelationId'
+    get:
+      tags: [Interactions]
+      operationId: listInteractions
+      summary: List a customer's interactions (timeline), newest first
+      description: |
+        Results depend on the caller's role (enforced by the backend):
+          - AGENT: only interactions where `actor` is the caller ("see only my own write attribution").
+          - ADMIN: every interaction for the customer ("read every customer's timeline").
+        Guests (no token) get 401 ("must not read a customer's timeline").
+        Empty list if the customer exists but has no visible interactions.
+      responses:
+        '200':
+          description: Interactions visible to the caller, newest first.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Interaction'
+              examples:
+                agentView:
+                  summary: What agent1 sees
+                  value:
+                    - interactionId: 6f1c2b7e-8d3a-4c51-9b2e-0a7d4e9f1c23
+                      customerId: CUS-1001
+                      channel: EMAIL
+                      summary: Sent welcome pack.
+                      actor: agent1
+                      occurredAt: '2026-10-01T14:00:00Z'
+                      correlationId: lab-request-001
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/CustomerNotFound'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
@@ -112,6 +234,7 @@ paths:
         `actor` is taken from the authenticated user (OPEN: confirm).
         `correlationId` is taken from the `X-Correlation-Id` header.
         Path is singular (`/interaction`) per the sequence diagram and team route notes.
+        Roles: AGENT only (ADMIN gets 403). Customer must be ACTIVE (otherwise 422).
       requestBody:
         required: true
         content:
@@ -141,7 +264,7 @@ paths:
                 recorded:
                   value:
                     interactionId: 6f1c2b7e-8d3a-4c51-9b2e-0a7d4e9f1c23
-                    customerId: 5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11
+                    customerId: CUS-1001
                     channel: PHONE
                     summary: Called about renewal.
                     actor: demo.user
@@ -167,19 +290,21 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      description: Access token from login. OPEN - login endpoint and token format TBD.
+      description: |
+        Access token from `POST /api/v1/auth/login`, sent as `Authorization: Bearer <token>`.
+        Token carries the user's role (AGENT or ADMIN). Missing/invalid token = 401; wrong role = 403.
 
   parameters:
     CustomerId:
       name: customerId
       in: path
       required: true
-      description: Unique customer UUID.
+      description: OPEN - UUID (per UML) or `CUS-1001` style (per fixtures)?
       schema:
-        $ref: '#/components/schemas/Uuid'
+        type: string
       examples:
         fixture:
-          value: 5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11
+          value: CUS-1001
     CorrelationId:
       name: X-Correlation-Id
       in: header
@@ -198,11 +323,30 @@ components:
         type: string
 
   schemas:
-    Uuid:
-      type: string
-      format: uuid
-      description: Universally unique identifier.
-      example: 5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11
+    LoginRequest:
+      type: object
+      required: [username, password]
+      additionalProperties: false
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+          format: password
+
+    LoginResponse:
+      type: object
+      required: [accessToken, tokenType]
+      properties:
+        accessToken:
+          type: string
+          description: Never log or commit this value.
+        tokenType:
+          type: string
+          enum: [Bearer]
+
     CustomerStatus:
       type: string
       enum: [ACTIVE, PROSPECT]
@@ -212,7 +356,7 @@ components:
       required: [customerId, fullName, email, status]
       properties:
         customerId:
-          $ref: '#/components/schemas/Uuid'
+          type: string
         fullName:
           type: string
         email:
@@ -247,7 +391,7 @@ components:
           type: string
           format: uuid
         customerId:
-          $ref: '#/components/schemas/Uuid'
+          type: string
         channel:
           $ref: '#/components/schemas/InteractionChannel'
         summary:
@@ -329,7 +473,7 @@ components:
           example:
             title: Customer not found
             status: 404
-            detail: No customer with id 8a9c7d2e-0f22-41c7-b1ef-6d1f3ac4d2ce.
+            detail: No customer with id CUS-9999.
             correlationId: lab-request-001
     Conflict:
       description: OPEN - e.g. duplicate submission with a correlation ID already used.
@@ -338,11 +482,18 @@ components:
           schema:
             $ref: '#/components/schemas/ProblemDetails'
     UnprocessableEntity:
-      description: OPEN - well-formed but breaks a business rule (rule TBD).
+      description: |
+        Well-formed but breaks a business rule, e.g. recording an interaction
+        for a customer who is not ACTIVE (backlog - "record an interaction for an active customer").
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ProblemDetails'
+          example:
+            title: Customer is not active
+            status: 422
+            detail: Interactions can only be recorded for ACTIVE customers. CUS-1002 is PROSPECT.
+            correlationId: lab-request-001
     ServiceUnavailable:
       description: Backend or a dependency (database, Kafka) is temporarily unavailable; safe to retry.
       headers:
