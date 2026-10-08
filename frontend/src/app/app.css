@@ -1,4 +1,7 @@
 .app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 1rem 1.5rem;
   background: #1f3a5f;
   color: #ffffff;
@@ -7,6 +10,12 @@
 .app-header h1 {
   margin: 0;
   font-size: 1.25rem;
+}
+
+.session {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 .app-main {
