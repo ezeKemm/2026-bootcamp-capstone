@@ -16,3 +16,8 @@ Desktop.ini
 *.njsproj
 *.sln
 *.swp
+
+# Local environment files (may contain secrets)
+.env
+.env.*
+!.env.example
