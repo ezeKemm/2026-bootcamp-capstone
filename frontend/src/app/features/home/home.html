@@ -1,29 +1,71 @@
-<section aria-labelledby="lookup-heading">
-  <h2 id="lookup-heading">Look up a customer</h2>
-
-  <form [formGroup]="form" (ngSubmit)="lookUp()" novalidate>
-    <label for="customer-id">Customer ID</label>
-    <div class="row">
-      <input
-        id="customer-id"
-        type="text"
-        formControlName="customerId"
-        autocomplete="off"
-        placeholder="e.g. CUS-1001"
-        [attr.aria-invalid]="showError()"
-        [attr.aria-describedby]="showError() ? 'customer-id-error' : null"
-      />
-      <button type="submit">Go</button>
+<!-- Page heading and count of customers matching the current filter. -->
+<section class="page">
+  <div class="title-row">
+    <div class="title">
+      <h1>Customers</h1>
+      <p class="count">{{ countLabel() }}</p>
     </div>
-    @if (showError()) {
-    <p id="customer-id-error" class="error">Enter a customer ID.</p>
-    }
-  </form>
+<!-- Status filter button and its option menu. -->
+    <div class="filter">
+      <button
+        type="button"
+        class="filter-btn"
+        aria-haspopup="true"
+        [attr.aria-expanded]="menuOpen()"
+        (click)="toggleMenu()"
+      >
+        {{ filterLabel() }}
+      </button>
+      @if (menuOpen()) {
+        <div class="menu" role="group" aria-label="Filter by status">
+          @for (option of filterOptions; track option) {
+            <button
+              type="button"
+              class="menu-item"
+              [class.chosen]="filter() === option"
+              [attr.aria-pressed]="filter() === option"
+              (click)="chooseFilter(option)"
+            >
+              {{ option }}
+            </button>
+          }
+        </div>
+      }
+    </div>
+  </div>
+<!-- Customer table; @empty displays a message when no rows match. -->
+  <table class="customers">
+    <thead>
+      <tr>
+        <th scope="col" >Name</th>
+        <th scope="col" class="status-col">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (customer of visibleCustomers(); track customer.name) {
+        <tr [class.selected]="selectedName() === customer.name">
+          <td>
+            <button type="button" class="name-btn" (click)="select(customer.name)">
+              {{ customer.name }}
+            </button>
+          </td>
+          <td class="status-col">
+            <span
+              class="badge"
+              [class.badge-active]="customer.status === 'Active'"
+              [class.badge-prospect]="customer.status === 'Prospect'"
+            >
+              {{ customer.status }}
+            </span>
+          </td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="2" class="empty">No customers with this status.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
 
-  <p class="hint">
-    Sample customers:
-    @for (id of sampleIds; track id) {
-    <a [routerLink]="['/customers', id]">{{ id }}</a>
-    }
-  </p>
+  <p class="hint">Select a customer to open their profile.</p>
 </section>
