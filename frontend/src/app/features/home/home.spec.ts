@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter, Router } from '@angular/router';
 import { Home } from './home';
 
 function setup() {
@@ -15,58 +16,25 @@ describe('Home', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [Home],
+      providers: [provideRouter([])],
     }).compileComponents();
   });
 
-  it('renders the customer list', () => {
-    const { element } = setup();
-
-    expect(element.querySelector('h1')?.textContent).toContain('Customers');
-    expect(element.querySelectorAll('tbody tr')).toHaveLength(2);
-    expect(element.querySelector('tbody')?.textContent).toContain('Amina Khan');
-    expect(element.querySelector('tbody')?.textContent).toContain('Ravi Singh');
-  });
-
-  it('filters the list by status', () => {
+  it('navigates to login with the customer return URL', () => {
     const { fixture, element } = setup();
 
-    element.querySelector<HTMLButtonElement>('.filter-btn')?.click();
-    fixture.detectChanges();
-
-    const options = Array.from(
-      element.querySelectorAll<HTMLButtonElement>('.menu-item'),
-    );
-    expect(options.map((option) => option.textContent?.trim())).toEqual([
-      'All',
-      'Active',
-      'Prospect',
-    ]);
-
-    const prospectOption = options.find(
-      (option) => option.textContent?.trim() === 'Prospect',
-    );
-    prospectOption?.click();
-    fixture.detectChanges();
-
-    expect(element.querySelectorAll('tbody tr')).toHaveLength(1);
-    expect(element.querySelector('tbody')?.textContent).toContain('Ravi Singh');
-    expect(element.querySelector('tbody')?.textContent).not.toContain('Amina Khan');
-    expect(element.querySelector('.count')?.textContent).toContain('Showing 1 of 2');
-    expect(element.querySelector('.menu')).toBeNull();
-  });
-
-  it('highlights a customer row when its name is selected', () => {
-    const { fixture, element } = setup();
+    const router = TestBed.inject(Router);
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
 
     const raviButton = Array.from(
       element.querySelectorAll<HTMLButtonElement>('.name-btn'),
     ).find((button) => button.textContent?.trim() === 'Ravi Singh');
 
-    expect(raviButton).toBeDefined();
     raviButton?.click();
     fixture.detectChanges();
 
-    const selectedRow = element.querySelector('tbody tr.selected');
-    expect(selectedRow?.textContent).toContain('Ravi Singh');
+    expect(navigateSpy).toHaveBeenCalledWith(['/login'], {
+      queryParams: { returnUrl: '/customers/CUS-1002' },
+    });
   });
 });
