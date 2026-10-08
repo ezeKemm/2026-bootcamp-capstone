@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import {
   ActivatedRouteSnapshot,
   Router,
@@ -6,8 +8,8 @@ import {
   UrlTree,
   provideRouter,
 } from '@angular/router';
-import { Auth } from './auth';
 import { authGuard } from './auth.guard';
+import { signInAs } from './auth.testing';
 
 function runGuard(url: string) {
   return TestBed.runInInjectionContext(() =>
@@ -17,7 +19,9 @@ function runGuard(url: string) {
 
 describe('authGuard', () => {
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+    });
   });
 
   it('redirects to login with a returnUrl when logged out', () => {
@@ -27,7 +31,7 @@ describe('authGuard', () => {
   });
 
   it('allows the page when logged in', () => {
-    TestBed.inject(Auth).login('agent', 'agent123').subscribe();
+    signInAs('AGENT');
     expect(runGuard('/customers/CUS-1001')).toBe(true);
   });
 });

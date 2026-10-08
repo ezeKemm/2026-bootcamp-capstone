@@ -1,5 +1,8 @@
-import { Injectable, computed, signal } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { Observable, catchError, map, throwError } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { toApiError } from '../http/api-error';
 
 export type UserRole = 'AGENT' | 'ADMIN';
 
@@ -8,14 +11,19 @@ export interface AuthUser {
   role: UserRole;
 }
 
-// DEMO ONLY - not real security. Replaced by the backend login endpoint once it exists.
-const DEMO_ACCOUNTS: Record<string, { password: string; role: UserRole }> = {
-  agent: { password: 'agent123', role: 'AGENT' },
-  admin: { password: 'admin123', role: 'ADMIN' },
-};
+/** Body of a successful POST /api/v1/auth/login (see openapi.yaml). */
+export interface LoginResponse {
+  accessToken: string;
+  tokenType: 'Bearer';
+  username: string;
+  role: UserRole;
+}
+
+export const LOGIN_URL = `${environment.apiBaseUrl}/api/v1/auth/login`;
 
 @Injectable({ providedIn: 'root' })
 export class Auth {
+  private readonly http = inject(HttpClient);
   private readonly currentUser = signal<AuthUser | null>(null);
   private token: string | null = null;
 
@@ -23,18 +31,20 @@ export class Auth {
   readonly user = this.currentUser.asReadonly();
   readonly isLoggedIn = computed(() => this.currentUser() !== null);
 
+  /** Signs in with the backend. The token is kept in memory only (refresh = logged out). */
   login(username: string, password: string): Observable<AuthUser> {
-    const name = username.trim().toLowerCase();
-    const account = Object.hasOwn(DEMO_ACCOUNTS, name) ? DEMO_ACCOUNTS[name] : undefined;
+    return this.http.post<LoginResponse>(LOGIN_URL, { username: username.trim(), password }).pipe(
+      map((response) => this.startSession(response)),
+      catchError((error: HttpErrorResponse) => throwError(() => toApiError(error))),
+    );
+  }
 
-    if (!account || account.password !== password) {
-      return throwError(() => new Error('Invalid username or password'));
-    }
-
-    const user: AuthUser = { username: name, role: account.role };
-    this.token = `demo-token-${name}`;
+  /** Stores a session from a login response. Public so tests can sign in without HTTP. */
+  startSession(response: LoginResponse): AuthUser {
+    const user: AuthUser = { username: response.username, role: response.role };
+    this.token = response.accessToken;
     this.currentUser.set(user);
-    return of(user);
+    return user;
   }
 
   logout(): void {
