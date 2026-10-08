@@ -46,6 +46,13 @@ public class Customer {
         return new Customer(fullName, email, CustomerStatus.PROSPECT);
     }
 
+    public void activate() {
+        if (status != CustomerStatus.PROSPECT) {
+            throw new DomainException("Only prospects can be activated.");
+        }
+        status = CustomerStatus.ACTIVE;
+    }
+
     // Getters
     public CustomerId getCustomerId() { return customerId; }
     public String getFullName() { return fullName; }
