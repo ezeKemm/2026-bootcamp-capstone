@@ -36,6 +36,23 @@ public class Customer {
         this.status = status;
     }
 
+    /**
+     * Factory method to register a new Customer. All new Customers begin with PROSPECT status.
+     * @param fullName The full name of the customer.
+     * @param email The email address of the customer.
+     * @return A new prospect Customer.
+     */
+    public static Customer registerProspect(String fullName, String email) {
+        return new Customer(fullName, email, CustomerStatus.PROSPECT);
+    }
+
+    public void activate() {
+        if (status != CustomerStatus.PROSPECT) {
+            throw new DomainException("Only prospects can be activated.");
+        }
+        status = CustomerStatus.ACTIVE;
+    }
+
     // Getters
     public CustomerId getCustomerId() { return customerId; }
     public String getFullName() { return fullName; }
