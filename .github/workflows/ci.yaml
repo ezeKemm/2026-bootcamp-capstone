@@ -32,6 +32,32 @@ jobs:
             backend/target/surefire-reports/**
             backend/target/failsafe-reports/**
           if-no-files-found: ignore
+  # SAST: SpotBugs with Find Security Bugs, plus the CycloneDX SBOM. Needs the security-scan profile in backend/pom.xml.
+  # Fails on a High finding (docs/github-actions-plan.md).
+  backend-sast:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: "backend/pom.xml"
+      - name: SpotBugs with Find Security Bugs, and SBOM
+        working-directory: backend
+        run: bash ./mvnw -B -ntp -Psecurity-scan -DskipTests verify
+      - name: Upload SAST report and SBOM
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: sast-reports
+          path: |
+            backend/target/spotbugsXml.xml
+            backend/target/classes/META-INF/sbom/application.cdx.json
+          if-no-files-found: warn
   # TODO: package after test and store artifact, do not rebuild after test
   backend-package:
     needs: backend-verify
