@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!--
+      SPRING_CSRF_PROTECTION_DISABLED - reviewed, intentional.
+      The API is stateless (SessionCreationPolicy.STATELESS) and authenticates only with an
+      "Authorization: Bearer <JWT>" header. No cookies or server sessions are used, so a browser
+      cannot be tricked into sending authenticated requests. CSRF protection does not apply.
+      Revisit if cookie- or session-based auth is ever added.
+    -->
+    <Match>
+        <Class name="com.northstar.crm.platform.security.SecurityConfig"/>
+        <Bug pattern="SPRING_CSRF_PROTECTION_DISABLED"/>
+    </Match>
+</FindBugsFilter>
