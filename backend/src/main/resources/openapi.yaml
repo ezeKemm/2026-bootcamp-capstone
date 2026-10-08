@@ -57,6 +57,8 @@ paths:
                   value:
                     accessToken: '<redacted>'
                     tokenType: Bearer
+                    username: agent1
+                    role: AGENT
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -396,7 +398,7 @@ components:
 
     LoginResponse:
       type: object
-      required: [accessToken, tokenType]
+      required: [accessToken, tokenType, username, role]
       properties:
         accessToken:
           type: string
@@ -404,6 +406,12 @@ components:
         tokenType:
           type: string
           enum: [Bearer]
+        username:
+          type: string
+          description: Signed-in user (also the token's `sub` and the `actor` on interactions).
+        role:
+          type: string
+          enum: [AGENT, ADMIN]
 
     PublicCustomer:
       type: object
