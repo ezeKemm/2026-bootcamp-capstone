@@ -8,6 +8,7 @@ on:
 
 jobs:
   backend-dependency-scan:
+    if: ${{ vars.RUN_DEP_SCAN == 'true' }}
     runs-on: ubuntu-24.04
     defaults:
       run:

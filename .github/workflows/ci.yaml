@@ -21,17 +21,16 @@ jobs:
           cache: maven
           cache-dependency-path: "backend/pom.xml"
       - name: Verify backend
-        run: |
-          cd backend
-          bash ./mvnw -B -ntp clean verify
+        working-directory: backend
+        run: bash ./mvnw -B -ntp clean verify
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: backend-test-reports
           path: |
-            **/target/surefire-reports/**
-            **/target/failsafe-reports/**
+            backend/target/surefire-reports/**
+            backend/target/failsafe-reports/**
           if-no-files-found: ignore
   # SAST: SpotBugs with Find Security Bugs, plus the CycloneDX SBOM. Needs the security-scan profile in backend/pom.xml.
   # Fails on a High finding (docs/github-actions-plan.md).
@@ -73,8 +72,8 @@ jobs:
           cache: maven
           cache-dependency-path: "backend/pom.xml"
       - name: Package once + checksum
+        working-directory: backend
         run: |
-          cd backend
           bash ./mvnw -B -ntp -DskipTests package
           sha256sum target/*.jar > target/SHA256SUMS
           echo "commit=${GITHUB_SHA}" >> target/SHA256SUMS
