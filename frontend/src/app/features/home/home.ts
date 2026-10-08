@@ -1,8 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 type Status = 'Active' | 'Prospect';
 type StatusFilter = 'All' | Status;
 
 interface CustomerRow {
+  customerId: string;
   name: string;
   status: Status;
 }
@@ -14,10 +16,11 @@ interface CustomerRow {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Home {
+  private readonly router = inject(Router);
   // The full list. Later this comes from the API instead of a hard-coded array.
   private readonly customers = signal<CustomerRow[]>([
-    { name: 'Amina Khan', status: 'Active' },
-    { name: 'Ravi Singh', status: 'Prospect' },
+    { customerId: 'CUS-1001', name: 'Amina Khan', status: 'Active' },
+    { customerId: 'CUS-1002', name: 'Ravi Singh', status: 'Prospect' },
   ]);
 
     // UI state: the active filter, whether its menu is open, and the selected row.
@@ -52,7 +55,9 @@ export class Home {
     this.menuOpen.set(false);
   }
 
-  select(name: string): void {
-    this.selectedName.set(name);
+  select(customerId: string): void {
+    void this.router.navigate(['/login'], {
+      queryParams: { returnUrl: `/customers/${customerId}` },
+    });
   }
 }
