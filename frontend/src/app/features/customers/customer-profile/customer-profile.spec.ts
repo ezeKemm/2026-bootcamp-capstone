@@ -47,7 +47,7 @@ describe('CustomerProfile', () => {
         .componentInstance as RecordInteractionForm;
       form.recorded.emit({
         customerId: 'CUS-1001',
-        channel: 'MEETING',
+        channel: 'BRANCH',
         summary: 'Quarterly review.',
       });
       fixture.detectChanges();
