@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Northstar CRM API
   version: 0.1.0-draft
-  summary: Login, customer profile, activate, and interaction (CAP-12) endpoints.
+  summary: Endpoints to list, activate, and record interactions with customers.
   description: |
     DRAFT contract between the Angular frontend and the Spring Boot backend.
     Written from the team sequence/UML diagrams, team route notes, and the current frontend code.
