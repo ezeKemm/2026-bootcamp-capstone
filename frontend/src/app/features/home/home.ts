@@ -1,33 +1,58 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+type Status = 'Active' | 'Prospect';
+type StatusFilter = 'All' | Status;
+
+interface CustomerRow {
+  name: string;
+  status: Status;
+}
 
 @Component({
   selector: 'app-home',
-  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './home.html',
   styleUrl: './home.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Home {
-  private readonly router = inject(Router);
+  // The full list. Later this comes from the API instead of a hard-coded array.
+  private readonly customers = signal<CustomerRow[]>([
+    { name: 'Amina Khan', status: 'Active' },
+    { name: 'Ravi Singh', status: 'Prospect' },
+  ]);
 
-  protected readonly sampleIds = ['CUS-1001', 'CUS-1002'];
-  protected readonly form = inject(NonNullableFormBuilder).group({
-    customerId: ['', [Validators.required, Validators.pattern(/\S/)]],
+    // UI state: the active filter, whether its menu is open, and the selected row.
+  readonly filter = signal<StatusFilter>('All');
+  readonly menuOpen = signal(false);
+  readonly selectedName = signal<string | null>(null);
+  readonly filterOptions: StatusFilter[] = ['All', 'Active', 'Prospect'];
+
+   // Actions called by the template in response to user input.
+    readonly visibleCustomers = computed(() => {
+    const filter = this.filter();
+    return this.customers().filter(
+      (customer) => filter === 'All' || customer.status === filter,
+    );
   });
 
-  protected showError(): boolean {
-    const control = this.form.controls.customerId;
-    return control.invalid && control.touched;
+  readonly countLabel = computed(
+    () => `Showing ${this.visibleCustomers().length} of ${this.customers().length}`,
+  );
+
+  readonly filterLabel = computed(() =>
+    this.filter() === 'All' ? 'Filter' : `Filter: ${this.filter()}`,
+  );
+
+
+  toggleMenu(): void {
+    this.menuOpen.update((open) => !open);
   }
 
-  protected lookUp(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-    const id = this.form.controls.customerId.value.trim();
-    void this.router.navigate(['/customers', id]);
+  chooseFilter(option: StatusFilter): void {
+    this.filter.set(option);
+    this.menuOpen.set(false);
+  }
+
+  select(name: string): void {
+    this.selectedName.set(name);
   }
 }
