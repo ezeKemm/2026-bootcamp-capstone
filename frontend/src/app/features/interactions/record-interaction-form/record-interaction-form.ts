@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { InteractionChannel, NewInteraction } from '../interaction.model';
+import { INTERACTION_CHANNELS, InteractionChannel, NewInteraction } from '../interaction.model';
 
 @Component({
   selector: 'app-record-interaction-form',
@@ -13,7 +13,7 @@ export class RecordInteractionForm {
   readonly customerId = input.required<string>();
   readonly recorded = output<NewInteraction>();
 
-  protected readonly channels: InteractionChannel[] = ['PHONE', 'EMAIL', 'MEETING'];
+  protected readonly channels = INTERACTION_CHANNELS;
   protected readonly summaryMaxLength = 500;
   protected readonly lastRecorded = signal<NewInteraction | null>(null);
 
