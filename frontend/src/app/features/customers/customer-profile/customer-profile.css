@@ -1,0 +1,6 @@
+.activate { margin-top: 0.5rem; font: inherit; padding: 0.5rem 1rem; }
+.timeline { list-style: none; padding: 0; display: grid; gap: 0.75rem; }
+.timeline li { border-left: 3px solid #1f3a5f; padding-left: 0.75rem; }
+.timeline p { margin: 0.25rem 0 0; }
+.timeline .empty { border: none; color: #555; padding: 0; }
+.hint { color: #555; }
