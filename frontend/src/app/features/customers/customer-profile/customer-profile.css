@@ -1,6 +1,158 @@
-.activate { margin-top: 0.5rem; font: inherit; padding: 0.5rem 1rem; }
-.timeline { list-style: none; padding: 0; display: grid; gap: 0.75rem; }
-.timeline li { border-left: 3px solid #1f3a5f; padding-left: 0.75rem; }
-.timeline p { margin: 0.25rem 0 0; }
-.timeline .empty { border: none; color: #555; padding: 0; }
-.hint { color: #555; }
+:host {
+  display: block;
+  color: #111;
+  background: #fff;
+}
+
+.profile-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #111;
+}
+
+.eyebrow {
+  margin: 0 0 0.4rem;
+  color: #555;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.profile-header h2 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.customer-id,
+.interaction-actor {
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.customer-id {
+  margin: 0.5rem 0 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.status {
+  padding: 0.3rem 0.55rem;
+  border: 1px solid #111;
+  border-radius: 3px;
+  font-size: 0.8rem;
+}
+
+.status.active {
+  background: #111;
+  color: #fff;
+}
+
+button {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #111;
+  border-radius: 3px;
+  background: #fff;
+  color: #111;
+  font: inherit;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #f1f1f1;
+}
+
+.profile-section {
+  padding: 1.5rem 0;
+  border-bottom: 1px solid #ccc;
+}
+
+.section-heading {
+  margin: 0 0 1rem;
+  font-size: 1.2rem;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+
+.detail dt {
+  margin-bottom: 0.35rem;
+  color: #555;
+  font-size: 0.85rem;
+}
+
+.detail dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline li {
+  padding: 1rem 0;
+  border-top: 1px solid #ddd;
+}
+
+.timeline li:first-child {
+  border-top: 0;
+}
+
+.interaction-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.interaction-heading time {
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.timeline p {
+  margin: 0.6rem 0;
+}
+
+.empty,
+.hint,
+.not-found {
+  color: #555;
+}
+
+@media (max-width: 600px) {
+  .profile-page {
+    padding: 1rem;
+  }
+
+  .profile-header {
+    flex-direction: column;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .interaction-heading {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}
