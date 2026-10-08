@@ -12,7 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.jayway.jsonpath.JsonPath;
 import com.northstar.crm.browsePublicCustomers.BrowsePublicCustomersController;
 import com.northstar.crm.browsePublicCustomers.BrowsePublicCustomersService;
-import com.northstar.crm.config.SecurityConfig;
+import com.northstar.crm.platform.security.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;

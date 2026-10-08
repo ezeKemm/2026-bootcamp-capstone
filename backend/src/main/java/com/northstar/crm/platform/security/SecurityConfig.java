@@ -1,4 +1,4 @@
-package com.northstar.crm.config;
+package com.northstar.crm.platform.security;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.northstar.crm.auth.AuthProperties;

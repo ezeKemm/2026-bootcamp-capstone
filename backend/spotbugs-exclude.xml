@@ -8,7 +8,7 @@
       Revisit if cookie- or session-based auth is ever added.
     -->
     <Match>
-        <Class name="com.northstar.crm.config.SecurityConfig"/>
+        <Class name="com.northstar.crm.platform.security.SecurityConfig"/>
         <Bug pattern="SPRING_CSRF_PROTECTION_DISABLED"/>
     </Match>
 </FindBugsFilter>
