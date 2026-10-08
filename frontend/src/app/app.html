@@ -1,5 +1,12 @@
 <header class="app-header">
   <h1>{{ appName }}</h1>
+
+  @if (auth.user(); as user) {
+  <div class="session">
+    <span>Signed in as {{ user.username }} ({{ user.role }})</span>
+    <button type="button" (click)="logout()">Sign out</button>
+  </div>
+  }
 </header>
 
 <main id="main-content" class="app-main">

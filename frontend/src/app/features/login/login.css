@@ -1,0 +1,8 @@
+.login { max-width: 24rem; }
+form { display: grid; gap: 1rem; }
+.field { display: grid; gap: 0.25rem; }
+input { font: inherit; padding: 0.5rem; }
+button { justify-self: start; font: inherit; padding: 0.5rem 1rem; }
+.error { margin: 0; color: #b00020; }
+.error-banner { margin: 0; padding: 0.5rem 0.75rem; border: 1px solid #b00020; color: #b00020; }
+.hint { color: #555; font-size: 0.875rem; }
