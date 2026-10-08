@@ -30,9 +30,8 @@ paths:
       tags: [Auth]
       operationId: login
       summary: Sign in and get a bearer token
-      description: |
-        Public endpoint (no token needed). Request/response shape follows Lab 28.
-      security: []
+      description: Public endpoint (no token needed).
+      security: [] # No token required
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
       requestBody:
@@ -70,6 +69,27 @@ paths:
                 title: Invalid username or password
                 status: 401
                 correlationId: lab-request-001
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      summary: Sign out and invalidate the current bearer token
+      description: Requires a valid bearer token.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Signed out successfully.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
@@ -295,7 +315,7 @@ components:
 
   headers:
     CorrelationId:
-      description: Echo of the request's `X-Correlation-Id`.
+      description: "Header: `X-Correlation-Id`."
       schema:
         type: string
 
@@ -459,7 +479,7 @@ components:
             detail: No customer with id 8a9c7d2e-0f22-41c7-b1ef-6d1f3ac4d2ce.
             correlationId: lab-request-001
     Conflict:
-      description: OPEN - e.g. duplicate submission with a correlation ID already used.
+      description: Duplicate submission with a correlation ID already used.
       content:
         application/problem+json:
           schema:
@@ -467,7 +487,7 @@ components:
     UnprocessableEntity:
       description: |
         Well-formed but breaks a business rule, e.g. recording an interaction
-        for a customer who is not ACTIVE (backlog - "record an interaction for an active customer").
+        for a customer who is not ACTIVE.
       content:
         application/problem+json:
           schema:
