@@ -93,6 +93,61 @@ paths:
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
+  /api/v1/public/customers:
+    get:
+      tags: [Customers]
+      operationId: publicBrowseCustomers
+      summary: List customer summaries for public browsing
+      description: |
+        Public endpoint available without authentication.
+        Returns only a customer's name and status, and supports pagination and filtering.
+      security: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: 0-based page index.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          description: Number of records to return per page.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: status
+          in: query
+          required: false
+          description: Filter the list by customer status.
+          schema:
+            $ref: '#/components/schemas/CustomerStatus'
+      responses:
+        '200':
+          description: Public customer list returned successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicCustomerPage'
+              example:
+                items:
+                  - fullName: Amina Khan
+                    status: ACTIVE
+                  - fullName: Ravi Singh
+                    status: PROSPECT
+                page: 0
+                size: 2
+                totalElements: 42
+                totalPages: 21
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
   /api/v1/customers/{customerId}:
     parameters:
       - $ref: '#/components/parameters/CustomerId'
@@ -349,6 +404,37 @@ components:
         tokenType:
           type: string
           enum: [Bearer]
+
+    PublicCustomer:
+      type: object
+      required: [fullName, status]
+      properties:
+        fullName:
+          type: string
+          description: Customer display name.
+        status:
+          $ref: '#/components/schemas/CustomerStatus'
+
+    PublicCustomerPage:
+      type: object
+      required: [items, page, size, totalElements, totalPages]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicCustomer'
+        page:
+          type: integer
+          description: 0-based page index.
+        size:
+          type: integer
+          description: Page size used for the request.
+        totalElements:
+          type: integer
+          description: Total matching records across all pages.
+        totalPages:
+          type: integer
+          description: Total number of pages for the query.
 
     CustomerStatus:
       type: string
