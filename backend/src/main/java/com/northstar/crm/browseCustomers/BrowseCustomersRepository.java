@@ -19,7 +19,7 @@ interface BrowseCustomersRepository extends Repository<Customer, CustomerId> {
      * @return A page of customer record summaries.
      */
     @Query(value = """
-        select c from Customer
+        select c from Customer c
         where c.status in :statuses
         order by c.fullName, c.customerId.value
         """,
