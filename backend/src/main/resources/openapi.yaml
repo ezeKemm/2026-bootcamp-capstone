@@ -202,10 +202,6 @@ paths:
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
-  /api/v1/customers/{customerId}/interaction:
-    parameters:
-      - $ref: '#/components/parameters/CustomerId'
-      - $ref: '#/components/parameters/CorrelationId'
     post:
       tags: [Interactions]
       operationId: recordInteraction
