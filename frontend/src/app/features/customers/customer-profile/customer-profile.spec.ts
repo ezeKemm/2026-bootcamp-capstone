@@ -13,38 +13,57 @@ function render(id: string, login?: [string, string]) {
       .login(...login)
       .subscribe();
   }
+
   const fixture = TestBed.createComponent(CustomerProfile);
   fixture.componentRef.setInput('id', id);
   fixture.detectChanges();
+
   return { fixture, el: fixture.nativeElement as HTMLElement };
 }
 
 describe('CustomerProfile', () => {
-  it('shows a known customer', () => {
-    const { el } = render('CUS-1001', AGENT);
-    expect(el.querySelector('h2')?.textContent).toContain('Amina');
-    expect(el.querySelector('.status')?.textContent).toContain('ACTIVE');
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [CustomerProfile],
+    }).compileComponents();
   });
 
-  it('shows not found for an unknown id', () => {
+  it('shows the profile header and customer details', () => {
+    const { el } = render('CUS-1001', AGENT);
+
+    expect(el.querySelector('.profile-header h2')?.textContent).toContain('Amina');
+    expect(el.querySelector('.customer-id')?.textContent).toContain('CUS-1001');
+    expect(el.querySelector('.status')?.textContent).toContain('ACTIVE');
+    expect(el.querySelector('#details-heading')?.textContent).toContain('Contact details');
+    expect(el.textContent).toContain('amina@example.com');
+  });
+
+  it('shows a not-found message for an unknown customer ID', () => {
     const { el } = render('CUS-9999', AGENT);
+
     expect(el.querySelector('[role="alert"]')?.textContent).toContain('CUS-9999');
+    expect(el.querySelector('.profile-page')).toBeNull();
   });
 
   describe('as an agent', () => {
-    it('shows the record form and only my own interactions on an active customer', () => {
+    it('shows the record form and only the agent’s interactions for an active customer', () => {
       const { el } = render('CUS-1001', AGENT);
+
       expect(el.querySelector('app-record-interaction-form')).not.toBeNull();
-      expect(el.querySelector('#timeline-heading')?.textContent).toContain('My interactions');
+      expect(el.querySelector('#timeline-heading')?.textContent)
+        .toContain('My interactions');
+
       const items = el.querySelectorAll('.timeline li');
       expect(items.length).toBe(1);
       expect(items[0].textContent).toContain('Sent welcome pack.');
     });
 
-    it('adds a recorded interaction to my list', () => {
+    it('adds a recorded interaction to the timeline', () => {
       const { fixture, el } = render('CUS-1001', AGENT);
-      const form = fixture.debugElement.query(By.directive(RecordInteractionForm))
+      const form = fixture.debugElement
+        .query(By.directive(RecordInteractionForm))
         .componentInstance as RecordInteractionForm;
+
       form.recorded.emit({
         customerId: 'CUS-1001',
         channel: 'PHONE',
@@ -57,8 +76,9 @@ describe('CustomerProfile', () => {
       expect(items[0].textContent).toContain('Quarterly review.');
     });
 
-    it('cannot record for a prospect until they are activated', () => {
+    it('shows the recording hint until a prospect is activated', () => {
       const { fixture, el } = render('CUS-1002', AGENT);
+
       expect(el.querySelector('app-record-interaction-form')).toBeNull();
       expect(el.querySelector('.hint')).not.toBeNull();
 
@@ -72,18 +92,23 @@ describe('CustomerProfile', () => {
   });
 
   describe('as an admin', () => {
-    it('sees the full timeline but cannot record', () => {
+    it('shows the full timeline and does not show the record form', () => {
       const { el } = render('CUS-1001', ADMIN);
-      expect(el.querySelector('#timeline-heading')?.textContent).toContain('Full timeline');
+
+      expect(el.querySelector('#timeline-heading')?.textContent)
+        .toContain('Full interaction timeline');
       expect(el.querySelectorAll('.timeline li').length).toBe(2);
       expect(el.querySelector('app-record-interaction-form')).toBeNull();
     });
 
     it('can activate a prospect', () => {
       const { fixture, el } = render('CUS-1002', ADMIN);
+
       el.querySelector<HTMLButtonElement>('.activate')!.click();
       fixture.detectChanges();
+
       expect(el.querySelector('.status')?.textContent).toContain('ACTIVE');
+      expect(el.querySelector('.activate')).toBeNull();
     });
   });
 });
