@@ -19,7 +19,7 @@ public interface BrowsePublicCustomersRepository extends Repository<Customer, Cu
      * @return A page of customer record summaries.
      */
     @Query(value = """
-        select new com.northstar.crm.browsePublicCustomers.dto.PublicCustomerSummary(c.fullName, c.status)
+        select new com.northstar.crm.browsePublicCustomers.PublicCustomerSummary(c.fullName, c.status)
         from Customer c
         where c.status in :statuses
         order by c.fullName, c.customerId.value
