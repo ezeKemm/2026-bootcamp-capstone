@@ -1,4 +1,4 @@
-package com.northstar.crm.Platform.Logging;
+package com.northstar.crm.platform.logging;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
