@@ -156,3 +156,45 @@ button:hover {
     gap: 0.25rem;
   }
 }
+/* Loading, error and retry states */
+.status-msg {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem;
+  color: #555;
+}
+
+.error-box {
+  max-width: 900px;
+  margin: 2rem auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid #b42318;
+  border-radius: 4px;
+  color: #7a1b1b;
+  background: #fdecec;
+}
+
+.error-box p {
+  margin: 0;
+}
+
+.retry-btn {
+  padding: 0.5rem 0.9rem;
+  border: 1px solid #111;
+  border-radius: 3px;
+  background: #fff;
+  min-height: 44px;
+}
+
+.activate-error {
+  margin: 1rem 0 0;
+  color: #b42318;
+}
+
+.activate:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
