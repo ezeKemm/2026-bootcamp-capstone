@@ -1,4 +1,4 @@
-package com.northstar.crm.Platform.Logging;
+package com.northstar.crm.platform.logging;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
