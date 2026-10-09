@@ -150,6 +150,73 @@ paths:
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
+  /api/v1/customers:
+    get:
+      tags: [ Customers ]
+      operationId: browseCustomers
+      summary: List customers for signed-in users
+      description: |
+        Roles: AGENT and ADMIN. Unlike the public list, each item includes the
+        customer's id and email, so the frontend can link to /customers/{customerId}.
+        Supports pagination and filtering by status.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: page
+          in: query
+          required: false
+          description: 0-based page index.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          required: false
+          description: Number of records to return per page.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: status
+          in: query
+          required: false
+          description: Filter the list by customer status.
+          schema:
+            $ref: '#/components/schemas/CustomerStatus'
+      responses:
+        '200':
+          description: Customer list returned successfully.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerPage'
+              example:
+                items:
+                  - customerId: 5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11
+                    fullName: Amina Khan
+                    email: amina.khan@example.com
+                    status: ACTIVE
+                  - customerId: 7d3b8c73-99f7-4d06-8ce5-f8d8668ed2a1
+                    fullName: Ravi Singh
+                    email: ravi.singh@example.com
+                    status: PROSPECT
+                page: 0
+                size: 20
+                totalItems: 2
+                totalPages: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
   /api/v1/customers/{customerId}:
     parameters:
       - $ref: '#/components/parameters/CustomerId'
@@ -431,6 +498,27 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PublicCustomer'
+        page:
+          type: integer
+          description: 0-based page index.
+        size:
+          type: integer
+          description: Page size used for the request.
+        totalItems:
+          type: integer
+          description: Total matching records across all pages.
+        totalPages:
+          type: integer
+          description: Total number of pages for the query.
+
+    CustomerPage:
+      type: object
+      required: [items, page, size, totalItems, totalPages]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Customer'
         page:
           type: integer
           description: 0-based page index.
