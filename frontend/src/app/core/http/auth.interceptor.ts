@@ -6,7 +6,7 @@ import { Auth, LOGIN_URL } from '../auth/auth';
 /** Adds "Authorization: Bearer <token>" only to our own API (never to other sites or the login call). */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const token = inject(Auth).accessToken();
-  const isOurApi = req.url.startsWith(`${environment.apiBaseUrl}/api/`);
+  const isOurApi = req.url.startsWith(`${environment.apiBaseUrl}/api/v1/`);
 
   if (!token || !isOurApi || req.url === LOGIN_URL || req.headers.has('Authorization')) {
     return next(req);
