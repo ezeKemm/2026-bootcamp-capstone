@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { INTERACTION_CHANNELS, InteractionChannel, NewInteraction } from '../interaction.model';
+import { INTERACTION_CHANNELS, InteractionChannel, Interaction } from '../interaction.model';
+import { ApiError } from '../../../core/http/api-error';
+import { CustomerApi } from '../../customers/customer-api';
 
 @Component({
   selector: 'app-record-interaction-form',
@@ -11,13 +13,16 @@ import { INTERACTION_CHANNELS, InteractionChannel, NewInteraction } from '../int
 })
 export class RecordInteractionForm {
   readonly customerId = input.required<string>();
-  readonly recorded = output<NewInteraction>();
+  readonly recorded = output<Interaction>();
 
   protected readonly channels = INTERACTION_CHANNELS;
   protected readonly summaryMaxLength = 500;
-  protected readonly lastRecorded = signal<NewInteraction | null>(null);
+  protected readonly lastRecorded = signal<Interaction | null>(null);
+  protected readonly saving = signal(false);
+  protected readonly error = signal<ApiError | null>(null);
 
   private readonly fb = inject(NonNullableFormBuilder);
+  private readonly api = inject(CustomerApi);
   protected readonly form = this.fb.group({
     channel: this.fb.control<InteractionChannel | ''>('', Validators.required),
     summary: [
@@ -37,13 +42,26 @@ export class RecordInteractionForm {
       return;
     }
     const { channel, summary } = this.form.getRawValue();
-    const interaction: NewInteraction = {
-      customerId: this.customerId(),
-      channel: channel as InteractionChannel,
-      summary: summary.trim(),
-    };
-    this.lastRecorded.set(interaction);
-    this.recorded.emit(interaction);
-    this.form.reset();
-  }
+    this.saving.set(true);
+this.error.set(null);
+
+this.api
+  .recordInteraction({
+    customerId: this.customerId(),
+    channel: channel as InteractionChannel,
+    summary: summary.trim(),
+  })
+  .subscribe({
+    next: (saved) => {
+      this.lastRecorded.set(saved);
+      this.recorded.emit(saved);
+      this.form.reset();
+      this.saving.set(false);
+    },
+    error: (err: ApiError) => {
+      this.error.set(err);
+      this.saving.set(false);
+    },
+  });
+}
 }

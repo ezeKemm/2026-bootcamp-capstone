@@ -53,9 +53,16 @@ export class CustomerApi {
   recordInteraction(interaction: NewInteraction): Observable<Interaction> {
     const { customerId, channel, summary } = interaction;
     return this.http
-      .post<Interaction>(`${this.customerUrl(customerId)}/interaction`, { channel, summary })
+      .post<Interaction>(`${this.customerUrl(customerId)}/interactions`, { channel, summary })
       .pipe(asApiError());
   }
+
+/** GET /api/v1/customers/{customerId}/interactions (newest first, filtered by role on the server) */
+listInteractions(customerId: string): Observable<Interaction[]> {
+  return this.http
+    .get<Interaction[]>(`${this.customerUrl(customerId)}/interactions`)
+    .pipe(asApiError());
+}
 
   private customerUrl(customerId: string): string {
     return `${this.baseUrl}/${encodeURIComponent(customerId)}`;

@@ -11,11 +11,10 @@ import {
 } from '@angular/core';
 import { Auth } from '../../../core/auth/auth';
 import { ApiError } from '../../../core/http/api-error';
-import { InteractionStore } from '../../interactions/interaction-store';
-import { NewInteraction } from '../../interactions/interaction.model';
 import { RecordInteractionForm } from '../../interactions/record-interaction-form/record-interaction-form';
 import { CustomerApi } from '../customer-api';
 import { Customer } from '../customer.model';
+import { Interaction } from '../../interactions/interaction.model';
 
 @Component({
   selector: 'app-customer-profile',
@@ -30,7 +29,6 @@ export class CustomerProfile {
 
   private readonly auth = inject(Auth);
   private readonly api = inject(CustomerApi);
-  private readonly interactionStore = inject(InteractionStore);
 
   // The customer from the backend, plus loading / error state.
   protected readonly customer = signal<Customer | null>(null);
@@ -60,15 +58,9 @@ export class CustomerProfile {
     () => this.isAgent() && this.customer()?.status === 'ACTIVE',
   );
 
-  /** Backlog: admins read every timeline; agents see only their own entries. (Still local data for now.) */
-  protected readonly interactions = computed(() => {
-    const all = this.interactionStore.forCustomer(this.id());
-    if (this.isAdmin()) {
-      return all;
-    }
-    const me = this.auth.user()?.username;
-    return all.filter((i) => i.actor === me);
-  });
+  /** The server already limits this by role: admins get everything, agents get their own entries. */
+protected readonly interactions = signal<Interaction[]>([]);
+protected readonly timelineError = signal<ApiError | null>(null);
 
   constructor() {
     // Load the customer now, and again whenever the :id in the URL changes.
@@ -98,16 +90,13 @@ export class CustomerProfile {
     });
   }
 
-  protected onRecorded(interaction: NewInteraction): void {
-    const user = this.auth.user();
-    if (user) {
-      this.interactionStore.record(interaction, user.username);
-    }
-  }
-
-  private load(id: string): void {
+  protected onRecorded(saved: Interaction): void {
+  this.interactions.update((list) => [saved, ...list]);
+}
+private load(id: string): void {
     this.loading.set(true);
     this.error.set(null);
+    this.loadTimeline(id);
 
     this.api.getCustomer(id).subscribe({
       next: (customer) => {
@@ -118,6 +107,17 @@ export class CustomerProfile {
         this.customer.set(null);
         this.error.set(err);
         this.loading.set(false);
+      },
+    });
+  }
+
+  private loadTimeline(id: string): void {
+    this.timelineError.set(null);
+    this.api.listInteractions(id).subscribe({
+      next: (list) => this.interactions.set(list),
+      error: (err: ApiError) => {
+        this.interactions.set([]);
+        this.timelineError.set(err);
       },
     });
   }
