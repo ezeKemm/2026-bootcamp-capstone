@@ -3,6 +3,7 @@ package com.northstar.crm.recordCustomerInteraction;
 import com.northstar.crm.domain.Customer;
 import com.northstar.crm.domain.CustomerId;
 import com.northstar.crm.domain.CustomerInteraction;
+import com.northstar.crm.domain.CustomerNotFoundException;
 import com.northstar.crm.recordCustomerInteraction.dto.RecordInteractionRequest;
 import com.northstar.crm.recordCustomerInteraction.dto.RecordInteractionResponse;
 import org.springframework.stereotype.Service;
@@ -22,9 +23,8 @@ public class RecordCustomerInteractionService {
     RecordInteractionResponse record(
         CustomerId customerId, RecordInteractionRequest request, String actor, String correlationId) {
 
-        // TODO: create Custom Exception to handle this
         Customer customer = customerRepository.findById(customerId)
-            .orElseThrow(() -> new IllegalArgumentException("Customer Not Found"));
+            .orElseThrow(() -> new CustomerNotFoundException(customerId));
 
         CustomerInteraction interaction = customer.recordInteraction(request.channel(), request.summary(), actor, correlationId);
 
