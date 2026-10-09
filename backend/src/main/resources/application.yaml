@@ -38,6 +38,7 @@ spring:
 crm:
   messaging:
     consumer-group: ${KAFKA_CONSUMER_GROUP:crm-interaction-observer}
+    retry-interval-ms: 1000
     interactions-topic: crm.customer.interactions.v1
     dead-letter-topic: crm.customer.interactions.v1.dlt
     partitions: 1
