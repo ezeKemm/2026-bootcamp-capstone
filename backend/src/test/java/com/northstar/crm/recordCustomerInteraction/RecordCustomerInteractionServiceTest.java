@@ -1,10 +1,6 @@
 package com.northstar.crm.recordCustomerInteraction;
 
-import com.northstar.crm.domain.Customer;
-import com.northstar.crm.domain.CustomerId;
-import com.northstar.crm.domain.CustomerInteraction;
-import com.northstar.crm.domain.DomainException;
-import com.northstar.crm.domain.InteractionChannel;
+import com.northstar.crm.domain.*;
 import com.northstar.crm.recordCustomerInteraction.dto.RecordInteractionRequest;
 import com.northstar.crm.recordCustomerInteraction.dto.RecordInteractionResponse;
 import org.junit.jupiter.api.Test;
@@ -69,12 +65,11 @@ public class RecordCustomerInteractionServiceTest {
         RecordCustomerInteractionService service = new RecordCustomerInteractionService(interactionRepository, customerRepository);
         RecordInteractionRequest request = new RecordInteractionRequest(InteractionChannel.PHONE, "Called about the account.");
 
-        IllegalArgumentException exception = assertThrows(
-            IllegalArgumentException.class,
+        assertThrows(
+            CustomerNotFoundException.class,
             () -> service.record(customerId, request, "agent1", "lab-request-001")
         );
 
-        assertThat(exception.getMessage()).isEqualTo("Customer Not Found");
         verifyNoInteractions(interactionRepository);
     }
 
