@@ -1,0 +1,89 @@
+<section class="page">
+  <div class="role-banner" role="note">
+    <p> You are signed in as: <strong>{{ auth.user()!.role }}</strong>.
+        You are permitted to view customer records, {{ auth.user()!.role == 'AGENT' ? "view your interactions," : "view all interactions," }} and record interactions. </p>
+  </div>
+
+  <!-- Page heading, count, and the status filter. -->
+  <div class="title-row">
+    <div class="title">
+      <h1>Customers</h1>
+      @if (!loading() && !error()) {
+      <p class="count">{{ countLabel() }}</p>
+      }
+    </div>
+
+    <div class="filter">
+      <button
+        type="button"
+        class="filter-btn"
+        aria-haspopup="true"
+        [attr.aria-expanded]="menuOpen()"
+        (click)="toggleMenu()"
+      >
+        {{ filterLabel() }}
+      </button>
+      @if (menuOpen()) {
+      <div class="menu" role="group" aria-label="Filter by status">
+        @for (option of filterOptions; track option) {
+        <button
+          type="button"
+          class="menu-item"
+          [class.chosen]="filter() === option"
+          [attr.aria-pressed]="filter() === option"
+          (click)="chooseFilter(option)"
+        >
+          {{ label(option) }}
+        </button>
+        }
+      </div>
+      }
+    </div>
+  </div>
+
+  <!-- Loading, error, or the table. -->
+  @if (loading()) {
+  <p class="status-msg" role="status">Loading customers…</p>
+  } @else if (error(); as err) {
+  <div class="error-box" role="alert">
+    <p>{{ err.title }}</p>
+    <button type="button" class="retry-btn" (click)="load()">Try again</button>
+  </div>
+  } @else {
+  <table class="customers">
+    <thead>
+    <tr>
+      <th scope="col">Name</th>
+      <th scope="col" class="status-col">Status</th>
+    </tr>
+    </thead>
+    <tbody>
+    @for (customer of customers(); track $index) {
+    <tr
+      class="clickable-row"
+      tabindex="0"
+      role="button"
+      (click)="openCustomer(customer)"
+      (keydown.enter)="openCustomer(customer)"
+      (keydown.space)="openCustomer(customer)"
+    >
+      <td class="name-cell">{{ customer.fullName }}</td>
+      <td class="status-col">
+              <span
+                class="badge"
+                [class.badge-active]="customer.status === 'ACTIVE'"
+                [class.badge-prospect]="customer.status === 'PROSPECT'"
+              >
+                {{ label(customer.status) }}
+              </span>
+      </td>
+    </tr>
+    } @empty {
+    <tr>
+      <td colspan="2" class="empty">No customers with this status.</td>
+    </tr>
+    }
+    </tbody>
+  </table>
+  }
+</section>
