@@ -43,3 +43,12 @@ crm:
     dead-letter-topic: crm.customer.interactions.v1.dlt
     partitions: 1
     replicas: 1
+crm:
+  jwt:
+    secret: ${JWT_SECRET}
+    ttl: 1h
+  security:
+    agent-password: ${CRM_AGENT_PASSWORD:agent1}   # lab-only demo users (Lab 28)
+    admin-password: ${CRM_ADMIN_PASSWORD:admin1}
+  cors:
+    allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:4200}

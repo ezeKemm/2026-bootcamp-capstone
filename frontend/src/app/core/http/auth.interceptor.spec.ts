@@ -1,8 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { Auth } from '../auth/auth';
+import { environment } from '../../../environments/environment';
+import { LOGIN_URL } from '../auth/auth';
+import { signInAs } from '../auth/auth.testing';
 import { authInterceptor } from './auth.interceptor';
+
+const API = `${environment.apiBaseUrl}/api/v1/customers`;
 
 describe('authInterceptor', () => {
   let http: HttpClient;
@@ -22,17 +26,33 @@ describe('authInterceptor', () => {
   afterEach(() => controller.verify());
 
   it('adds no Authorization header when logged out', () => {
-    http.get('/api/test').subscribe();
-    const req = controller.expectOne('/api/test');
+    http.get(API).subscribe();
+    const req = controller.expectOne(API);
     expect(req.request.headers.has('Authorization')).toBe(false);
     req.flush({});
   });
 
-  it('adds the Bearer token when logged in', () => {
-    TestBed.inject(Auth).login('agent', 'agent123').subscribe();
-    http.get('/api/test').subscribe();
-    const req = controller.expectOne('/api/test');
-    expect(req.request.headers.get('Authorization')).toBe('Bearer demo-token-agent');
+  it('adds the Bearer token to our API when logged in', () => {
+    signInAs('AGENT');
+    http.get(API).subscribe();
+    const req = controller.expectOne(API);
+    expect(req.request.headers.get('Authorization')).toBe('Bearer test-token-agent1');
+    req.flush({});
+  });
+
+  it('never sends the token to another site', () => {
+    signInAs('AGENT');
+    http.get('https://example.com/data').subscribe();
+    const req = controller.expectOne('https://example.com/data');
+    expect(req.request.headers.has('Authorization')).toBe(false);
+    req.flush({});
+  });
+
+  it('does not add the token to the login call', () => {
+    signInAs('AGENT');
+    http.post(LOGIN_URL, {}).subscribe();
+    const req = controller.expectOne(LOGIN_URL);
+    expect(req.request.headers.has('Authorization')).toBe(false);
     req.flush({});
   });
 });

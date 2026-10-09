@@ -57,6 +57,8 @@ paths:
                   value:
                     accessToken: '<redacted>'
                     tokenType: Bearer
+                    username: agent1
+                    role: AGENT
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -141,7 +143,7 @@ paths:
                     status: PROSPECT
                 page: 0
                 size: 2
-                totalElements: 42
+                totalItems: 42
                 totalPages: 21
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -396,7 +398,7 @@ components:
 
     LoginResponse:
       type: object
-      required: [accessToken, tokenType]
+      required: [accessToken, tokenType, username, role]
       properties:
         accessToken:
           type: string
@@ -404,6 +406,12 @@ components:
         tokenType:
           type: string
           enum: [Bearer]
+        username:
+          type: string
+          description: Signed-in user (also the token's `sub` and the `actor` on interactions).
+        role:
+          type: string
+          enum: [AGENT, ADMIN]
 
     PublicCustomer:
       type: object
@@ -417,7 +425,7 @@ components:
 
     PublicCustomerPage:
       type: object
-      required: [items, page, size, totalElements, totalPages]
+      required: [items, page, size, totalItems, totalPages]
       properties:
         items:
           type: array
@@ -429,7 +437,7 @@ components:
         size:
           type: integer
           description: Page size used for the request.
-        totalElements:
+        totalItems:
           type: integer
           description: Total matching records across all pages.
         totalPages:
