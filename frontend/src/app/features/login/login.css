@@ -1,8 +1,96 @@
-.login { max-width: 24rem; }
-form { display: grid; gap: 1rem; }
-.field { display: grid; gap: 0.25rem; }
-input { font: inherit; padding: 0.5rem; }
-button { justify-self: start; font: inherit; padding: 0.5rem 1rem; }
-.error { margin: 0; color: #b00020; }
-.error-banner { margin: 0; padding: 0.5rem 0.75rem; border: 1px solid #b00020; color: #b00020; }
-.hint { color: #555; font-size: 0.875rem; }
+/* Sign-in: blue field with the flare star on one side, the form on a white sheet beside it. */
+:host {
+  display: block;
+}
+
+.login-layout {
+  display: grid;
+  overflow: hidden;
+  max-width: 58rem;
+  margin: clamp(0rem, 4vh, 3rem) auto 0;
+  border-radius: var(--radius-sheet);
+  background: var(--surface);
+  box-shadow: var(--shadow-sheet);
+}
+
+.login-aside {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  min-height: 11rem;
+  padding: 1.75rem;
+  background: var(--field);
+  color: #ffffff;
+}
+
+/* The one loud moment in the app: a flare star cropped by the corner */
+.login-aside::before {
+  content: '';
+  position: absolute;
+  top: -5rem;
+  right: -4rem;
+  width: 17rem;
+  height: 17rem;
+  background: var(--flare);
+  -webkit-mask: var(--star) center / contain no-repeat;
+  mask: var(--star) center / contain no-repeat;
+}
+
+.login-pitch {
+  position: relative;
+  max-width: 15ch;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3.4vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+}
+
+.login {
+  align-self: center;
+  padding: clamp(1.5rem, 4vw, 3rem);
+}
+
+h2 {
+  margin: 0 0 1.75rem;
+  font-size: 2.25rem;
+  letter-spacing: -0.03em;
+}
+
+form {
+  display: grid;
+  gap: 1.125rem;
+}
+
+button {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.hint {
+  margin-top: 1.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+code {
+  padding: 0.1em 0.375em;
+  border-radius: 2px;
+  background: var(--polaris-tint);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+@media (min-width: 48rem) {
+  .login-layout {
+    grid-template-columns: 5fr 6fr;
+    min-height: 32rem;
+  }
+
+  .login-aside {
+    padding: 2.5rem;
+  }
+}

@@ -1,0 +1,51 @@
+:host {
+  display: block;
+}
+
+.not-found-page {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding-top: clamp(0rem, 5vh, 3rem);
+}
+
+.code {
+  margin: 0 0 0.5rem -0.04em;
+  color: var(--polaris);
+  font-family: var(--font-display);
+  font-size: clamp(7rem, 24vw, 15rem);
+  font-weight: 800;
+  line-height: 0.8;
+  letter-spacing: -0.06em;
+}
+
+h2 {
+  margin: 0;
+  font-size: 2.25rem;
+  letter-spacing: -0.03em;
+}
+
+p {
+  margin: 0;
+  color: var(--slate);
+}
+
+.home-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 1rem;
+  padding: 0 1.25rem;
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.18s var(--ease);
+}
+
+.home-link:hover {
+  background: var(--polaris);
+}

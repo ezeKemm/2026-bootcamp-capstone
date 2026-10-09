@@ -3,7 +3,10 @@
 
   @if (auth.user(); as user) {
   <div class="session">
-    <span>Signed in as {{ user.username }} ({{ user.role }})</span>
+    <span>
+      Signed in as <strong>{{ user.username }}</strong>
+      <span class="role-chip">{{ user.role }}</span>
+    </span>
     <button type="button" (click)="logout()">Sign out</button>
   </div>
   }

@@ -1,1 +1,707 @@
-/* You can add global styles to this file, and also import other style files */
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap');
+
+/*
+ * Northstar CRM design system.
+ * 1. Tokens: every color, font, radius, shadow and easing the app uses.
+ * 2. Base: page ground, type, links, keyboard focus, route entrance.
+ * 3. Shared pieces: buttons, form fields, messages, customer list.
+ * Component .css files hold only the layout of their own screen.
+ *
+ * Three surfaces carry the whole look:
+ *   paper  = the ground; large type sits on it directly
+ *   sheet  = white, soft shadow; data you read or edit
+ *   field  = Polaris blue; identity and the one main call to action
+ */
+
+/* 1. Tokens */
+:root {
+  --ink: #0d1030;
+  --slate: #555a78;
+  --polaris: #2a3fe6;
+  --polaris-deep: #1b2bb5;
+  --polaris-tint: #eceeff;
+  --flare: #d9f24a;
+  --paper: #f2f3f7;
+  --surface: #ffffff;
+  --line: #dcdfeb;
+  --line-strong: #7d829f;
+  --on-field: #dfe3ff;
+
+  --ok: #0f6b46;
+  --ok-bg: #e2f6ea;
+  --warn: #8a5300;
+  --danger: #b3142b;
+  --danger-bg: #fdecee;
+
+  --field: linear-gradient(145deg, #3147f0 0%, var(--polaris) 45%, var(--polaris-deep) 100%);
+
+  --font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-body: 'Instrument Sans', 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', Consolas, 'Courier New', monospace;
+
+  --radius: 3px;
+  --radius-sheet: 6px;
+  --shadow-sheet: 0 1px 0 rgba(13, 16, 48, 0.04), 0 24px 48px -28px rgba(13, 16, 48, 0.3);
+  --shadow-pop: 0 18px 40px -12px rgba(13, 16, 48, 0.35);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --page-width: 72rem;
+
+  /* The four-point north star. Used as a mask, so each use picks its own color. */
+  --star: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0l1.7 10.3L24 12l-10.3 1.7L12 24l-1.7-10.3L0 12l10.3-1.7z'/%3E%3C/svg%3E");
+  --icon-chevron-down: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%230d1030' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  --icon-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%232a3fe6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M3 8h10M9 4l4 4-4 4'/%3E%3C/svg%3E");
+}
+
+/* 2. Base */
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+a {
+  color: var(--polaris);
+}
+
+:focus-visible {
+  outline: 3px solid var(--polaris);
+  outline-offset: 2px;
+}
+
+/* Each routed screen rises into place once, as the answer to a navigation */
+main > :not(router-outlet) {
+  animation: rise 0.32s var(--ease);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 3a. Buttons: ink outline by default, filled ink for the main action */
+button {
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.18s var(--ease),
+    border-color 0.18s var(--ease),
+    color 0.18s var(--ease),
+    transform 0.18s var(--ease);
+}
+
+button:hover {
+  background: var(--ink);
+  color: #ffffff;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+button[type='submit'] {
+  background: var(--ink);
+  color: #ffffff;
+}
+
+button[type='submit']:hover {
+  border-color: var(--polaris);
+  background: var(--polaris);
+}
+
+/* 3b. Form fields */
+.field {
+  display: grid;
+  gap: 0.375rem;
+}
+
+label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+input,
+select,
+textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 46px;
+  padding: 0.625rem 0.75rem;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius);
+  background-color: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  transition: border-color 0.18s var(--ease);
+}
+
+select {
+  appearance: none;
+  padding-right: 2.5rem;
+  background-image: var(--icon-chevron-down);
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+}
+
+textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+input:hover,
+select:hover,
+textarea:hover,
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--ink);
+}
+
+[aria-invalid='true'] {
+  border-color: var(--danger);
+  background-color: #fffafa;
+}
+
+/* 3c. Messages */
+.hint {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--slate);
+}
+
+.error {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.error-banner,
+.error-box,
+.activate-error,
+.not-found {
+  margin: 0;
+  padding: 0.875rem 1rem;
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius);
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.error-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.error-box p {
+  margin: 0;
+}
+
+.success {
+  margin: 0;
+  padding: 0.875rem 1rem;
+  border-left: 3px solid var(--ok);
+  border-radius: var(--radius);
+  background: var(--ok-bg);
+  color: var(--ok);
+  font-weight: 600;
+}
+
+/* Loading: the north star turns while data is on its way */
+.status-msg {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  color: var(--slate);
+}
+
+.status-msg::before {
+  content: '';
+  width: 1.25rem;
+  height: 1.25rem;
+  background: var(--polaris);
+  -webkit-mask: var(--star) center / contain no-repeat;
+  mask: var(--star) center / contain no-repeat;
+  animation: spin 1.6s linear infinite;
+}
+
+/* Guests have one action, so it gets the blue field */
+.guest-banner {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  padding: 1.5rem 1.75rem;
+  border-radius: var(--radius-sheet);
+  background: var(--field);
+  color: #ffffff;
+  box-shadow: var(--shadow-sheet);
+}
+
+.guest-banner::before {
+  content: '';
+  position: absolute;
+  top: -4.5rem;
+  right: 6rem;
+  width: 15rem;
+  height: 15rem;
+  background: #ffffff;
+  opacity: 0.1;
+  -webkit-mask: var(--star) center / contain no-repeat;
+  mask: var(--star) center / contain no-repeat;
+}
+
+.guest-banner p {
+  position: relative;
+  max-width: 34ch;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.sign-in-btn {
+  position: relative;
+  border-color: var(--flare);
+  background: var(--flare);
+  color: var(--ink);
+}
+
+.sign-in-btn:hover {
+  border-color: #ffffff;
+  background: #ffffff;
+  color: var(--ink);
+}
+
+.sign-in-btn:focus-visible {
+  outline-color: #ffffff;
+}
+
+.role-banner p {
+  max-width: 70ch;
+  margin: 0;
+  color: var(--slate);
+  font-size: 0.9375rem;
+}
+
+.role-banner strong {
+  color: var(--ink);
+}
+
+/* 3d. Customer list. Phone: one column. Desktop: title column, then the list. */
+.page {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+  max-width: var(--page-width);
+  margin: 0 auto;
+}
+
+.page > * {
+  min-width: 0;
+}
+
+.title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.title h1 {
+  margin: 0;
+  font-size: clamp(2.75rem, 5.5vw, 4rem);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+
+.count {
+  margin: 0.75rem 0 0;
+  color: var(--slate);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.filter {
+  position: relative;
+}
+
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.filter-btn::after {
+  content: '';
+  width: 0.4375rem;
+  height: 0.4375rem;
+  margin-top: -0.25rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.18s var(--ease);
+}
+
+.filter-btn[aria-expanded='true']::after {
+  margin-top: 0.25rem;
+  transform: rotate(225deg);
+}
+
+.menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 13rem;
+  margin-top: 0.5rem;
+  padding: 0.375rem;
+  border-radius: var(--radius-sheet);
+  background: var(--surface);
+  box-shadow:
+    0 0 0 1px var(--line),
+    var(--shadow-pop);
+  transform-origin: top;
+  animation: pop 0.14s var(--ease);
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 0.75rem;
+  border: 0;
+  font-weight: 500;
+  text-align: left;
+}
+
+.menu-item:hover {
+  background: var(--polaris-tint);
+  color: var(--ink);
+}
+
+.menu-item.chosen {
+  font-weight: 700;
+}
+
+.menu-item.chosen::after {
+  content: '';
+  width: 0.875rem;
+  height: 0.875rem;
+  background: var(--polaris);
+  -webkit-mask: var(--star) center / contain no-repeat;
+  mask: var(--star) center / contain no-repeat;
+}
+
+.table-card {
+  overflow-x: auto;
+  border-radius: var(--radius-sheet);
+  background: var(--surface);
+  box-shadow: var(--shadow-sheet);
+}
+
+.customers {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.customers th {
+  padding: 1.125rem 1rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--slate);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.customers td {
+  padding: 1.125rem 1rem;
+  border-top: 1px solid var(--line);
+  transition: background-color 0.18s var(--ease);
+}
+
+.customers tbody tr:first-child td {
+  border-top: 0;
+}
+
+.customers .name-cell {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition:
+    background-color 0.18s var(--ease),
+    color 0.18s var(--ease),
+    text-indent 0.18s var(--ease);
+}
+
+.customers .status-col {
+  width: 8.5rem;
+}
+
+.customers .empty {
+  padding: 3rem 1rem;
+  color: var(--slate);
+  text-align: center;
+}
+
+/* Signed-in rows open a profile: the name steps right and the arrow follows */
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row .status-col {
+  background: var(--icon-arrow) no-repeat right 1.75rem center / 1rem;
+  transition:
+    background-color 0.18s var(--ease),
+    background-position 0.18s var(--ease);
+}
+
+.clickable-row:hover td,
+.clickable-row:focus-visible td {
+  background-color: var(--polaris-tint);
+}
+
+.clickable-row:hover .name-cell,
+.clickable-row:focus-visible .name-cell {
+  color: var(--polaris);
+  text-indent: 0.375rem;
+}
+
+.clickable-row:hover .status-col,
+.clickable-row:focus-visible .status-col {
+  background-position: right 1.25rem center;
+}
+
+.clickable-row:focus-visible {
+  outline-offset: -3px;
+}
+
+/* Status: filled dot for Active, ring for Prospect, so color is never the only signal */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.badge::before {
+  content: '';
+  box-sizing: border-box;
+  width: 0.5625rem;
+  height: 0.5625rem;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+
+.badge-active {
+  color: var(--ok);
+}
+
+.badge-active::before {
+  background: currentColor;
+}
+
+.badge-prospect {
+  color: var(--warn);
+}
+
+/* 3e. ADDED (record popup). Dialog: a sheet lifted over a dimmed page.
+   Opened with showModal(), so the browser traps focus inside it and closes it on Esc. */
+dialog {
+  box-sizing: border-box;
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 2rem;
+  border: 0;
+  border-radius: var(--radius-sheet);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-pop);
+}
+
+dialog[open] {
+  animation: pop 0.18s var(--ease);
+}
+
+dialog::backdrop {
+  background: rgba(13, 16, 48, 0.55);
+}
+
+/* Leaves room for the close button beside the dialog's title */
+dialog h3 {
+  padding-right: 3rem;
+}
+
+.dialog-close {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  width: 44px;
+  padding: 0;
+  border: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+/* The Record interaction header: a full-width button that opens the dialog */
+.record-title {
+  margin: 0;
+}
+
+.record-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  padding: 1.5rem 1.75rem;
+  border: 0;
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-align: left;
+}
+
+/* Plus sign drawn from two bars on an ink disc; it turns a quarter on hover */
+.record-trigger::after {
+  content: '';
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background:
+    linear-gradient(#ffffff, #ffffff) center / 0.875rem 2px no-repeat,
+    linear-gradient(#ffffff, #ffffff) center / 2px 0.875rem no-repeat,
+    var(--ink);
+  transition:
+    background-color 0.18s var(--ease),
+    transform 0.18s var(--ease);
+}
+
+.record-trigger:hover {
+  background: var(--polaris-tint);
+  color: var(--polaris);
+}
+
+.record-trigger:hover::after {
+  background-color: var(--polaris);
+  transform: rotate(90deg);
+}
+
+.record-trigger:focus-visible {
+  outline-offset: -3px;
+}
+
+@media (min-width: 56rem) {
+  .page {
+    grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+    gap: 2.5rem 3.5rem;
+  }
+
+  .page > .guest-banner,
+  .page > .role-banner {
+    grid-column: 1 / -1;
+  }
+
+  .page > .table-card,
+  .page > .status-msg,
+  .page > .error-box {
+    grid-column: 2;
+  }
+
+  .title-row {
+    position: sticky;
+    top: 1.5rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.75rem;
+  }
+
+  .menu {
+    right: auto;
+    left: 0;
+  }
+
+  .customers th,
+  .customers td {
+    padding-inline: 1.5rem;
+  }
+
+  .customers .name-cell {
+    font-size: 1.25rem;
+  }
+
+  .customers .status-col {
+    width: 11rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -3,6 +3,7 @@
 } @else if (customer(); as c) {
 <!-- Main profile content is shown only when the customer is found. -->
 <div class="profile-page">
+  <div class="profile-aside">
   <!-- Customer identity and actions available for this customer's status and user role. -->
   <header class="profile-header">
     <div>
@@ -45,7 +46,50 @@
       </div>
     </dl>
   </section>
+  </div>
 
+  <div class="profile-main">
+  <!-- ADDED (record popup): result of the last record attempt, shown above the timeline. -->
+  @if (recordError(); as err) {
+  <p #recordResult class="error-banner record-error" role="alert" tabindex="-1">
+    Could not record: {{ err.detail ?? err.title }}
+  </p>
+  }
+  @if (lastRecorded(); as r) {
+  <p #recordResult class="success record-success" role="status" tabindex="-1">
+    Recorded {{ r.channel }} interaction.
+  </p>
+  }
+
+@if (canRecord()) {
+  <!-- CHANGED (record popup): the header opens the form in a modal <dialog> instead of showing it inline. -->
+  <section class="profile-section record-section" aria-label="Record an interaction">
+    <h3 class="record-title">
+      <button
+        type="button"
+        class="record-trigger"
+        aria-haspopup="dialog"
+        (click)="openRecordDialog()"
+      >
+        Record interaction
+      </button>
+    </h3>
+
+    <dialog #recordDialog class="record-dialog" closedby="any" aria-labelledby="record-heading">
+      <app-record-interaction-form
+        [customerId]="c.customerId"
+        [showResult]="false"
+        (recorded)="onRecorded($event)"
+        (failed)="onRecordFailed($event)"
+      />
+      <button type="button" class="dialog-close" aria-label="Close" (click)="closeRecordDialog()">
+        ×
+      </button>
+    </dialog>
+  </section>
+  } @else if (isAgent()) {
+  <p class="hint">Interactions can only be recorded for ACTIVE customers.</p>
+  }
   <!-- The component supplies only the interactions this user's role may view. -->
   <section class="profile-section" aria-labelledby="timeline-heading">
     <h3 id="timeline-heading" class="section-heading">
@@ -68,17 +112,8 @@
     </ol>
   </section>
 
-  <!-- Agents can record interactions only when the customer is active. -->
-  @if (canRecord()) {
-  <section class="profile-section" aria-label="Record an interaction">
-    <app-record-interaction-form
-      [customerId]="c.customerId"
-      (recorded)="onRecorded($event)"
-    />
-  </section>
-  } @else if (isAgent()) {
-  <p class="hint">Interactions can only be recorded for ACTIVE customers.</p>
-  }
+  
+  </div>
 </div>
 } @else if (notFound()) {
 <!-- The id in the URL doesn't match a customer (or isn't a valid id). -->
