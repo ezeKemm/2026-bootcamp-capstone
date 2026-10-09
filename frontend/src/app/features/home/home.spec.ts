@@ -90,7 +90,7 @@ describe('Home (guest customer list)', () => {
     expect(element.textContent).toContain('browsing as a guest');
     element.querySelector<HTMLButtonElement>('.sign-in-btn')?.click();
 
-    expect(navigateSpy).toHaveBeenCalledWith(['/login']);
+    expect(navigateSpy).toHaveBeenCalledWith(['/login'], { queryParams: { returnUrl: '/customers' } });
   });
 
   it('hides the guest banner when signed in', async () => {
