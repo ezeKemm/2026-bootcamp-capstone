@@ -44,6 +44,7 @@ public class InteractionRecordedListener {
         }
     }
 
+    // Failed events are swallowed TODO: resilience (retry) and/or outbox pattern?
     private void logFailure(CustomerInteraction i, Throwable error) {
         log.error("Failed to publish interaction event: interactionId={}, correlationId={}, error={}",
             i.getInteractionId().value(),
