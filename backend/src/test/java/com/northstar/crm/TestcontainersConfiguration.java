@@ -13,7 +13,8 @@ class TestcontainersConfiguration {
 	@Bean
 	@ServiceConnection
 	KafkaContainer kafkaContainer() {
-		return new KafkaContainer(DockerImageName.parse("apache/kafka:latest"));
+		return new KafkaContainer(DockerImageName.parse("apache/kafka:latest"))
+				.withEnv("KAFKA_AUTO_CREATE_TOPICS_ENABLE", "false");
 	}
 
 	@Bean
