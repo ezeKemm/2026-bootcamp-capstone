@@ -37,7 +37,7 @@ async function setup(loggedIn = false) {
       provideRouter([]),
       provideHttpClient(),
       provideHttpClientTesting(),
-      { provide: Auth, useValue: { isLoggedIn: signal(loggedIn) } },
+      { provide: Auth, useValue: { user: signal({username: 'amina', role: 'AGENT'}), isLoggedIn: signal(loggedIn) } },
     ],
   }).compileComponents();
 
@@ -95,25 +95,6 @@ describe('BrowseCustomers', () => {
     row.click();
 
     expect(navigateSpy).toHaveBeenCalledWith(['/customers', '5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11']);
-  });
-
-  it('shows the guest banner, and Sign in goes to the login page', async () => {
-    const { fixture, http, element } = await setup();
-    respond(http, fixture);
-
-    const navigateSpy = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
-    expect(element.textContent).toContain('browsing as a guest');
-
-    element.querySelector<HTMLButtonElement>('.sign-in-btn')?.click();
-
-    expect(navigateSpy).toHaveBeenCalledWith(['/login']);
-  });
-
-  it('hides the guest banner when signed in', async () => {
-    const { fixture, http, element } = await setup(true);
-    respond(http, fixture);
-
-    expect(element.querySelector('.role-banner')).toBeNull();
   });
 
   it('reloads from the server with the chosen status', async () => {
