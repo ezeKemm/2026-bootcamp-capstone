@@ -6,6 +6,7 @@ import { environment } from '../../../../environments/environment';
 import { UserRole } from '../../../core/auth/auth';
 import { signInAs } from '../../../core/auth/auth.testing';
 import { RecordInteractionForm } from '../../interactions/record-interaction-form/record-interaction-form';
+import { Interaction } from '../../interactions/interaction.model';
 import { Customer } from '../customer.model';
 import { CustomerProfile } from './customer-profile';
 
@@ -26,6 +27,17 @@ const RAVI: Customer = {
   status: 'PROSPECT',
 };
 
+/** An interaction as the backend returns it after saving. */
+const SAVED: Interaction = {
+  interactionId: '11111111-2222-3333-4444-555555555555',
+  customerId: AMINA_ID,
+  channel: 'PHONE',
+  summary: 'Quarterly review.',
+  actor: 'agent1',
+  occurredAt: '2026-10-09T15:00:00Z',
+  correlationId: 'test-correlation-id',
+};
+
 function render(id: string, role: UserRole = 'AGENT') {
   signInAs(role);
   const fixture = TestBed.createComponent(CustomerProfile);
@@ -35,12 +47,14 @@ function render(id: string, role: UserRole = 'AGENT') {
   return { fixture, http, el: fixture.nativeElement as HTMLElement };
 }
 
-/** Answers the GET for this customer, then re-renders. */
+/** Answers the customer GET and the timeline GET, then re-renders. */
 function respond(
   http: HttpTestingController,
   fixture: ComponentFixture<CustomerProfile>,
   customer: Customer,
+  interactions: Interaction[] = [],
 ) {
+  http.expectOne(`${BASE}/${customer.customerId}/interactions`).flush(interactions);
   http.expectOne(`${BASE}/${customer.customerId}`).flush(customer);
   fixture.detectChanges();
 }
@@ -70,6 +84,7 @@ describe('CustomerProfile', () => {
   it('shows not found when the backend returns 404', () => {
     const { fixture, http, el } = render(AMINA_ID);
 
+    http.expectOne(`${BASE}/${AMINA_ID}/interactions`).flush([]);
     http
       .expectOne(`${BASE}/${AMINA_ID}`)
       .flush(
@@ -85,6 +100,7 @@ describe('CustomerProfile', () => {
   it('treats an invalid id (400) as not found', () => {
     const { fixture, http, el } = render('CUS-1001');
 
+    http.expectOne(`${BASE}/CUS-1001/interactions`).flush([]);
     http
       .expectOne(`${BASE}/CUS-1001`)
       .flush({ title: 'Bad Request', status: 400 }, { status: 400, statusText: 'Bad Request' });
@@ -96,6 +112,7 @@ describe('CustomerProfile', () => {
   it('shows an error with retry when the server is unreachable', () => {
     const { fixture, http, el } = render(AMINA_ID);
 
+    http.expectOne(`${BASE}/${AMINA_ID}/interactions`).flush([]);
     http.expectOne(`${BASE}/${AMINA_ID}`).error(new ProgressEvent('error'));
     fixture.detectChanges();
     expect(el.querySelector('.error-box')?.textContent).toContain('Cannot reach the server');
@@ -122,7 +139,7 @@ describe('CustomerProfile', () => {
 
       const form = fixture.debugElement.query(By.directive(RecordInteractionForm))
         .componentInstance as RecordInteractionForm;
-      form.recorded.emit({ customerId: AMINA_ID, channel: 'PHONE', summary: 'Quarterly review.' });
+      form.recorded.emit(SAVED);
       fixture.detectChanges();
 
       const items = el.querySelectorAll('.timeline li');
@@ -183,6 +200,15 @@ describe('CustomerProfile', () => {
         'Full interaction timeline',
       );
       expect(el.querySelector('app-record-interaction-form')).toBeNull();
+    });
+
+    it('shows the timeline from the server', () => {
+      const { fixture, http, el } = render(AMINA_ID, 'ADMIN');
+      respond(http, fixture, AMINA, [SAVED]);
+
+      const items = el.querySelectorAll('.timeline li');
+      expect(items.length).toBe(1);
+      expect(items[0].textContent).toContain('Quarterly review.');
     });
   });
 });

@@ -60,7 +60,7 @@ describe('CustomerApi', () => {
       })
       .subscribe();
 
-    const req = http.expectOne(`${base}/CUS-1001/interaction`);
+    const req = http.expectOne(`${base}/CUS-1001/interactions`);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ channel: 'PHONE', summary: 'Called about renewal.' });
     req.flush(
@@ -106,7 +106,7 @@ describe('CustomerApi', () => {
       .recordInteraction({ customerId: 'CUS-1001', channel: 'PHONE', summary: ' ' })
       .subscribe({ error: (e: ApiError) => (error = e) });
 
-    http.expectOne(`${base}/CUS-1001/interaction`).flush(
+    http.expectOne(`${base}/CUS-1001/interactions`).flush(
       {
         title: 'Validation failed',
         status: 400,
