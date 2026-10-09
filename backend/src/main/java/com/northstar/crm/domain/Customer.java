@@ -7,6 +7,10 @@ import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+
 
 @Entity
 @Table(name = "customers")
@@ -51,6 +55,15 @@ public class Customer {
             throw new DomainException("Only prospects can be activated.");
         }
         status = CustomerStatus.ACTIVE;
+    }
+
+    public CustomerInteraction recordInteraction(InteractionChannel channel, String summary, String actor, String correlationId) {
+        if (status != CustomerStatus.ACTIVE) {
+            throw new DomainException("Only active customers can interact with bank staff.");
+        }
+        // Truncates time to PostgreSQL format
+        Instant occurredAt = Instant.now(Clock.systemUTC()).truncatedTo(ChronoUnit.MICROS);
+        return new CustomerInteraction(customerId, channel, summary, actor, occurredAt, correlationId);
     }
 
     // Getters
