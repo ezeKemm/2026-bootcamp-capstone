@@ -17,6 +17,17 @@ spring:
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+        spring.json.value.default.type: com.northstar.crm.platform.messaging.CustomerInteractionRecordedV1
+        spring.json.use.type.headers: false
+    listener:
+      ack-mode: record
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
@@ -26,6 +37,7 @@ spring:
 
 crm:
   messaging:
+    consumer-group: ${KAFKA_CONSUMER_GROUP:crm-interaction-observer}
     interactions-topic: crm.customer.interactions.v1
     dead-letter-topic: crm.customer.interactions.v1.dlt
     partitions: 1
