@@ -6,6 +6,6 @@ import org.springframework.data.repository.Repository;
 
 import java.util.Optional;
 
-public interface CustomerRepository extends Repository<Customer, CustomerId> {
+interface CustomerRepository extends Repository<Customer, CustomerId> {
     Optional<Customer> findById(CustomerId customerId);
 }
