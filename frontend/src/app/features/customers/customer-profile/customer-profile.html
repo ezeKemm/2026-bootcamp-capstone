@@ -1,80 +1,92 @@
-@if (customer(); as c) {
-  <!-- Main profile content is shown only when the customer is found. -->
-  <div class="profile-page">
-    <!-- Customer identity and actions available for this customer's status and user role. -->
-    <header class="profile-header">
-      <div>
-        <p class="eyebrow">Customer profile</p>
-        <h2 id="customer-name">{{ c.fullName }}</h2>
-        <p class="customer-id">Customer ID: {{ c.customerId }}</p>
-      </div>
+@if (loading()) {
+<p class="status-msg" role="status">Loading customer…</p>
+} @else if (customer(); as c) {
+<!-- Main profile content is shown only when the customer is found. -->
+<div class="profile-page">
+  <!-- Customer identity and actions available for this customer's status and user role. -->
+  <header class="profile-header">
+    <div>
+      <p class="eyebrow">Customer profile</p>
+      <h2 id="customer-name">{{ c.fullName }}</h2>
+      <p class="customer-id">Customer ID: {{ c.customerId }}</p>
+    </div>
 
-      <div class="header-actions">
+    <div class="header-actions">
         <span class="status" [class.active]="c.status === 'ACTIVE'">
           {{ c.status }}
         </span>
-        @if (canActivate()) {
-          <button type="button" class="activate" (click)="activate()">
-            Activate customer
-          </button>
-        }
+      @if (canActivate()) {
+      <button type="button" class="activate" [disabled]="activating()" (click)="activate()">
+        {{ activating() ? 'Activating…' : 'Activate customer' }}
+      </button>
+      }
+    </div>
+  </header>
+
+  @if (activateError(); as err) {
+  <p class="activate-error" role="alert">Could not activate: {{ err.title }}</p>
+  }
+
+  <!-- Key customer fields, arranged separately from the interaction history. -->
+  <section class="profile-section" aria-labelledby="details-heading">
+    <h3 id="details-heading" class="section-heading">Contact details</h3>
+    <dl class="details-grid">
+      <div class="detail">
+        <dt>Email</dt>
+        <dd>{{ c.email }}</dd>
       </div>
-    </header>
+      <div class="detail">
+        <dt>Status</dt>
+        <dd>{{ c.status }}</dd>
+      </div>
+      <div class="detail">
+        <dt>Customer ID</dt>
+        <dd>{{ c.customerId }}</dd>
+      </div>
+    </dl>
+  </section>
 
-    <!-- Key customer fields, arranged separately from the interaction history. -->
-    <section class="profile-section" aria-labelledby="details-heading">
-      <h3 id="details-heading" class="section-heading">Contact details</h3>
-      <dl class="details-grid">
-        <div class="detail">
-          <dt>Email</dt>
-          <dd>{{ c.email }}</dd>
+  <!-- The component supplies only the interactions this user's role may view. -->
+  <section class="profile-section" aria-labelledby="timeline-heading">
+    <h3 id="timeline-heading" class="section-heading">
+      {{ isAdmin() ? 'Full interaction timeline' : 'My interactions' }}
+    </h3>
+
+    <ol class="timeline">
+      @for (i of interactions(); track i.interactionId) {
+      <li>
+        <div class="interaction-heading">
+          <strong>{{ i.channel }}</strong>
+          <time>{{ i.occurredAt | date: 'medium' }}</time>
         </div>
-        <div class="detail">
-          <dt>Status</dt>
-          <dd>{{ c.status }}</dd>
-        </div>
-        <div class="detail">
-          <dt>Customer ID</dt>
-          <dd>{{ c.customerId }}</dd>
-        </div>
-      </dl>
-    </section>
+        <p>{{ i.summary }}</p>
+        <span class="interaction-actor">Recorded by {{ i.actor }}</span>
+      </li>
+      } @empty {
+      <li class="empty">No interactions yet.</li>
+      }
+    </ol>
+  </section>
 
-    <!-- The component supplies only the interactions this user's role may view. -->
-    <section class="profile-section" aria-labelledby="timeline-heading">
-      <h3 id="timeline-heading" class="section-heading">
-        {{ isAdmin() ? 'Full interaction timeline' : 'My interactions' }}
-      </h3>
-
-      <ol class="timeline">
-        @for (i of interactions(); track i.interactionId) {
-          <li>
-            <div class="interaction-heading">
-              <strong>{{ i.channel }}</strong>
-              <time>{{ i.occurredAt | date: 'medium' }}</time>
-            </div>
-            <p>{{ i.summary }}</p>
-            <span class="interaction-actor">Recorded by {{ i.actor }}</span>
-          </li>
-        } @empty {
-          <li class="empty">No interactions yet.</li>
-        }
-      </ol>
-    </section>
-
-    <!-- Agents can record interactions only when the customer is active. -->
-    @if (canRecord()) {
-      <section class="profile-section" aria-label="Record an interaction">
-        <app-record-interaction-form
-          [customerId]="c.customerId"
-          (recorded)="onRecorded($event)"
-        />
-      </section>
-    } @else if (isAgent()) {
-      <p class="hint">Interactions can only be recorded for ACTIVE customers.</p>
-    }
-  </div>
-} @else {
-  <!-- Fallback shown when the ID in the route does not match a customer. -->
-  <p class="not-found" role="alert">Customer {{ id() }} was not found.</p>
+  <!-- Agents can record interactions only when the customer is active. -->
+  @if (canRecord()) {
+  <section class="profile-section" aria-label="Record an interaction">
+    <app-record-interaction-form
+      [customerId]="c.customerId"
+      (recorded)="onRecorded($event)"
+    />
+  </section>
+  } @else if (isAgent()) {
+  <p class="hint">Interactions can only be recorded for ACTIVE customers.</p>
+  }
+</div>
+} @else if (notFound()) {
+<!-- The id in the URL doesn't match a customer (or isn't a valid id). -->
+<p class="not-found" role="alert">Customer {{ id() }} was not found.</p>
+} @else if (error(); as err) {
+<!-- Server down or another error: offer a retry. -->
+<div class="error-box" role="alert">
+  <p>{{ err.title }}</p>
+  <button type="button" class="retry-btn" (click)="retry()">Try again</button>
+</div>
 }
