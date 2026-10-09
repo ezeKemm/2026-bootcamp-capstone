@@ -1,13 +1,17 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-type Status = 'Active' | 'Prospect';
-type StatusFilter = 'All' | Status;
+import { Auth } from '../../core/auth/auth';
+import { ApiError } from '../../core/http/api-error';
+import { CustomerStatus } from '../customers/customer.model';
+import { PublicCustomer, PublicCustomerApi } from '../customers/public-customer-api';
 
-interface CustomerRow {
-  customerId: string;
-  name: string;
-  status: Status;
-}
+type StatusFilter = 'All' | CustomerStatus;
+
+/** API sends ACTIVE / PROSPECT; the screen shows Active / Prospect. */
+const STATUS_LABELS: Record<CustomerStatus, string> = {
+  ACTIVE: 'Active',
+  PROSPECT: 'Prospect',
+};
 
 @Component({
   selector: 'app-home',
@@ -17,47 +21,68 @@ interface CustomerRow {
 })
 export class Home {
   private readonly router = inject(Router);
-  // The full list. Later this comes from the API instead of a hard-coded array.
-  private readonly customers = signal<CustomerRow[]>([
-    { customerId: 'CUS-1001', name: 'Amina Khan', status: 'Active' },
-    { customerId: 'CUS-1002', name: 'Ravi Singh', status: 'Prospect' },
-  ]);
+  private readonly api = inject(PublicCustomerApi);
+  protected readonly auth = inject(Auth);
 
-    // UI state: the active filter, whether its menu is open, and the selected row.
+  // Data from the server, plus loading / error state.
+  readonly customers = signal<PublicCustomer[]>([]);
+  readonly totalItems = signal(0);
+  readonly loading = signal(true);
+  readonly error = signal<ApiError | null>(null);
+
+  // Filter menu state.
   readonly filter = signal<StatusFilter>('All');
   readonly menuOpen = signal(false);
-  readonly selectedName = signal<string | null>(null);
-  readonly filterOptions: StatusFilter[] = ['All', 'Active', 'Prospect'];
-
-   // Actions called by the template in response to user input.
-    readonly visibleCustomers = computed(() => {
-    const filter = this.filter();
-    return this.customers().filter(
-      (customer) => filter === 'All' || customer.status === filter,
-    );
-  });
+  readonly filterOptions: StatusFilter[] = ['All', 'ACTIVE', 'PROSPECT'];
 
   readonly countLabel = computed(
-    () => `Showing ${this.visibleCustomers().length} of ${this.customers().length}`,
+    () => `Showing ${this.customers().length} of ${this.totalItems()}`,
   );
 
   readonly filterLabel = computed(() =>
-    this.filter() === 'All' ? 'Filter' : `Filter: ${this.filter()}`,
+    this.filter() === 'All' ? 'Filter' : `Filter: ${this.label(this.filter())}`,
   );
 
+  constructor() {
+    this.load();
+  }
+
+  /** Fetches the list from the server, using the current filter. */
+  load(): void {
+    const filter = this.filter();
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.api.list(filter === 'All' ? undefined : filter).subscribe({
+      next: (page) => {
+        this.customers.set(page.items);
+        this.totalItems.set(page.totalItems);
+        this.loading.set(false);
+      },
+      error: (err: ApiError) => {
+        this.error.set(err);
+        this.loading.set(false);
+      },
+    });
+  }
 
   toggleMenu(): void {
     this.menuOpen.update((open) => !open);
   }
 
+  /** Filtering happens on the server, so picking a filter reloads the list. */
   chooseFilter(option: StatusFilter): void {
     this.filter.set(option);
     this.menuOpen.set(false);
+    this.load();
   }
 
-  select(customerId: string): void {
-    void this.router.navigate(['/login'], {
-      queryParams: { returnUrl: `/customers/${customerId}` },
-    });
+  /** A guest's only action: go to the login page. */
+  signIn(): void {
+    void this.router.navigate(['/login']);
+  }
+
+  label(option: StatusFilter): string {
+    return option === 'All' ? 'All' : STATUS_LABELS[option];
   }
 }

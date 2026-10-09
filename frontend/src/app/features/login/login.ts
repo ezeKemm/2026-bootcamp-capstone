@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { ApiError } from '../../core/http/api-error';
 import { Auth } from '../../core/auth/auth';
 
 @Component({
@@ -18,6 +19,7 @@ export class Login {
   readonly returnUrl = input<string>();
 
   protected readonly error = signal<string | null>(null);
+  protected readonly submitting = signal(false);
   protected readonly form = inject(NonNullableFormBuilder).group({
     username: ['', Validators.required],
     password: ['', Validators.required],
@@ -34,13 +36,15 @@ export class Login {
       return;
     }
     this.error.set(null);
+    this.submitting.set(true);
     const { username, password } = this.form.getRawValue();
 
     this.auth.login(username, password).subscribe({
       next: () => void this.router.navigateByUrl(this.safeReturnUrl()),
-      error: (e: Error) => {
-        this.error.set(e.message);
+      error: (e: ApiError) => {
+        this.error.set(e.title); // "Invalid username or password" / "Cannot reach the server"
         this.form.controls.password.reset();
+        this.submitting.set(false);
       },
     });
   }

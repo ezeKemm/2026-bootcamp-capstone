@@ -1,11 +1,21 @@
-<!-- Page heading and count of customers matching the current filter. -->
 <section class="page">
+  <!-- Guests see this banner; their only action is to sign in. -->
+  @if (!auth.isLoggedIn()) {
+  <div class="guest-banner" role="note">
+    <p>You're browsing as a guest. Sign in to view customer details and record interactions.</p>
+    <button type="button" class="sign-in-btn" (click)="signIn()">Sign in</button>
+  </div>
+  }
+
+  <!-- Page heading, count, and the status filter. -->
   <div class="title-row">
     <div class="title">
       <h1>Customers</h1>
+      @if (!loading() && !error()) {
       <p class="count">{{ countLabel() }}</p>
+      }
     </div>
-<!-- Status filter button and its option menu. -->
+
     <div class="filter">
       <button
         type="button"
@@ -17,55 +27,59 @@
         {{ filterLabel() }}
       </button>
       @if (menuOpen()) {
-        <div class="menu" role="group" aria-label="Filter by status">
-          @for (option of filterOptions; track option) {
-            <button
-              type="button"
-              class="menu-item"
-              [class.chosen]="filter() === option"
-              [attr.aria-pressed]="filter() === option"
-              (click)="chooseFilter(option)"
-            >
-              {{ option }}
-            </button>
-          }
-        </div>
+      <div class="menu" role="group" aria-label="Filter by status">
+        @for (option of filterOptions; track option) {
+        <button
+          type="button"
+          class="menu-item"
+          [class.chosen]="filter() === option"
+          [attr.aria-pressed]="filter() === option"
+          (click)="chooseFilter(option)"
+        >
+          {{ label(option) }}
+        </button>
+        }
+      </div>
       }
     </div>
   </div>
-<!-- Customer table; @empty displays a message when no rows match. -->
+
+  <!-- Loading, error, or the table. -->
+  @if (loading()) {
+  <p class="status-msg" role="status">Loading customers…</p>
+  } @else if (error(); as err) {
+  <div class="error-box" role="alert">
+    <p>{{ err.title }}</p>
+    <button type="button" class="retry-btn" (click)="load()">Try again</button>
+  </div>
+  } @else {
   <table class="customers">
     <thead>
-      <tr>
-        <th scope="col" >Name</th>
-        <th scope="col" class="status-col">Status</th>
-      </tr>
+    <tr>
+      <th scope="col">Name</th>
+      <th scope="col" class="status-col">Status</th>
+    </tr>
     </thead>
     <tbody>
-      @for (customer of visibleCustomers(); track customer.name) {
-        <tr [class.selected]="selectedName() === customer.name">
-          <td>
-            <button type="button" class="name-btn" (click)="select(customer.customerId)">
-              {{ customer.name }}
-            </button>
-          </td>
-          <td class="status-col">
-            <span
-              class="badge"
-              [class.badge-active]="customer.status === 'Active'"
-              [class.badge-prospect]="customer.status === 'Prospect'"
-            >
-              {{ customer.status }}
-            </span>
-          </td>
-        </tr>
-      } @empty {
-        <tr>
-          <td colspan="2" class="empty">No customers with this status.</td>
-        </tr>
-      }
+    @for (customer of customers(); track $index) {
+    <tr>
+      <td class="name-cell">{{ customer.fullName }}</td>
+      <td class="status-col">
+              <span
+                class="badge"
+                [class.badge-active]="customer.status === 'ACTIVE'"
+                [class.badge-prospect]="customer.status === 'PROSPECT'"
+              >
+                {{ label(customer.status) }}
+              </span>
+      </td>
+    </tr>
+    } @empty {
+    <tr>
+      <td colspan="2" class="empty">No customers with this status.</td>
+    </tr>
+    }
     </tbody>
   </table>
-
-  <p class="hint">Select a customer to open their profile.</p>
+  }
 </section>

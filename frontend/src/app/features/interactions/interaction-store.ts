@@ -8,7 +8,7 @@ const SEED: Interaction[] = [
     customerId: 'CUS-1001',
     channel: 'EMAIL',
     summary: 'Sent welcome pack.',
-    actor: 'agent',
+    actor: 'agent1',
     occurredAt: '2026-10-01T14:00:00Z',
     correlationId: 'lab-request-001',
   },
