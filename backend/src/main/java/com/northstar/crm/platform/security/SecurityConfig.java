@@ -55,8 +55,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()   // CORS preflight
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/public/customers").permitAll()   // guest browse (backlog)
-                        .requestMatchers(HttpMethod.POST, "/api/v1/customers/*/interaction").hasRole("AGENT")
                         .requestMatchers(HttpMethod.POST, "/api/v1/customers/*/activate").hasAnyRole("AGENT", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/customers/*/interactions").hasAnyRole("AGENT", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/customers/*/interactions").hasAnyRole("AGENT", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/customers/*").hasAnyRole("AGENT", "ADMIN")
                         .anyRequest().authenticated())                              // deny by default

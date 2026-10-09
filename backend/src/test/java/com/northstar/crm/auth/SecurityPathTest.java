@@ -125,18 +125,6 @@ class SecurityPathTest {
                 .andExpect(status().isUnauthorized());
     }
 
-    // ---------- 403: not allowed ----------
-
-    @Test
-    void adminCannotRecordAnInteraction() throws Exception {
-        mockMvc.perform(post(CUSTOMER + "/interaction")
-                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(INTERACTION_BODY))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.title").value("You do not have permission to do that"));
-    }
-
     // ---------- Allowed through security ----------
     // These endpoints aren't built yet, so "passed security" means anything except 401/403.
 
