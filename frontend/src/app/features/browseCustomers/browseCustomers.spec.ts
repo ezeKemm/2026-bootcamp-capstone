@@ -5,14 +5,24 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { Auth } from '../../core/auth/auth';
-import { Home } from './home';
+import { BrowseCustomers } from './browseCustomers';
 
-const URL = `${environment.apiBaseUrl}/api/v1/public/customers`;
+const URL = `${environment.apiBaseUrl}/api/v1/customers`;
 
 const PAGE = {
   items: [
-    { fullName: 'Amina Khan', status: 'ACTIVE' },
-    { fullName: 'Ravi Singh', status: 'PROSPECT' },
+    {
+      customerId: '5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11',
+      fullName: 'Amina Khan',
+      email: 'amina.khan@example.com',
+      status: 'ACTIVE',
+    },
+    {
+      customerId: '7d3b8c73-99f7-4d06-8ce5-f8d8668ed2a1',
+      fullName: 'Ravi Singh',
+      email: 'ravi.singh@example.com',
+      status: 'PROSPECT',
+    },
   ],
   page: 0,
   size: 20,
@@ -20,19 +30,18 @@ const PAGE = {
   totalPages: 1,
 };
 
-/** loggedIn swaps in a fake Auth, so the test doesn't depend on how login works. */
 async function setup(loggedIn = false) {
   await TestBed.configureTestingModule({
-    imports: [Home],
+    imports: [BrowseCustomers],
     providers: [
       provideRouter([]),
       provideHttpClient(),
       provideHttpClientTesting(),
-      { provide: Auth, useValue: { isLoggedIn: signal(loggedIn) } },
+      { provide: Auth, useValue: { user: signal({username: 'amina', role: 'AGENT'}), isLoggedIn: signal(loggedIn) } },
     ],
   }).compileComponents();
 
-  const fixture = TestBed.createComponent(Home);
+  const fixture = TestBed.createComponent(BrowseCustomers);
   const http = TestBed.inject(HttpTestingController);
   fixture.detectChanges();
   return { fixture, http, element: fixture.nativeElement as HTMLElement };
@@ -40,17 +49,17 @@ async function setup(loggedIn = false) {
 
 function respond(
   http: HttpTestingController,
-  fixture: ComponentFixture<Home>,
+  fixture: ComponentFixture<BrowseCustomers>,
   body: object = PAGE,
 ) {
   http.expectOne((req) => req.url === URL).flush(body);
   fixture.detectChanges();
 }
 
-describe('Home (guest customer list)', () => {
+describe('BrowseCustomers', () => {
   afterEach(() => TestBed.inject(HttpTestingController).verify());
 
-  it('shows loading, then the customers from the public API', async () => {
+  it('loads customer rows from the customer API', async () => {
     const { fixture, http, element } = await setup();
     expect(element.textContent).toContain('Loading customers');
 
@@ -60,11 +69,12 @@ describe('Home (guest customer list)', () => {
     expect(rows.length).toBe(2);
     expect(rows[0].textContent).toContain('Amina Khan');
     expect(rows[0].textContent).toContain('Active');
+    expect(rows[1].textContent).toContain('Ravi Singh');
     expect(rows[1].textContent).toContain('Prospect');
     expect(element.textContent).toContain('Showing 2 of 2');
   });
 
-  it('asks for the first page with no status filter', async () => {
+  it('requests the first page without a status filter', async () => {
     const { http } = await setup();
 
     const req = http.expectOne((r) => r.url === URL);
@@ -75,29 +85,16 @@ describe('Home (guest customer list)', () => {
     req.flush(PAGE);
   });
 
-  it('does not let guests click into a customer', async () => {
+  it('navigates to the customer detail page when a row is clicked', async () => {
     const { fixture, http, element } = await setup();
     respond(http, fixture);
 
-    expect(element.querySelector('tbody button, tbody a')).toBeNull();
-  });
-
-  it('shows the guest banner, and Sign in goes to the login page', async () => {
-    const { fixture, http, element } = await setup();
-    respond(http, fixture);
     const navigateSpy = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const row = element.querySelectorAll<HTMLTableRowElement>('tbody tr')[0];
 
-    expect(element.textContent).toContain('browsing as a guest');
-    element.querySelector<HTMLButtonElement>('.sign-in-btn')?.click();
+    row.click();
 
-    expect(navigateSpy).toHaveBeenCalledWith(['/login'], { queryParams: { returnUrl: '/customers' } });
-  });
-
-  it('hides the guest banner when signed in', async () => {
-    const { fixture, http, element } = await setup(true);
-    respond(http, fixture);
-
-    expect(element.querySelector('.guest-banner')).toBeNull();
+    expect(navigateSpy).toHaveBeenCalledWith(['/customers', '5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11']);
   });
 
   it('reloads from the server with the chosen status', async () => {
@@ -125,9 +122,7 @@ describe('Home (guest customer list)', () => {
 
     http.expectOne((r) => r.url === URL).error(new ProgressEvent('error'));
     fixture.detectChanges();
-    expect(element.querySelector('[role="alert"]')?.textContent).toContain(
-      'Cannot reach the server',
-    );
+    expect(element.querySelector('[role="alert"]')?.textContent).toContain('Cannot reach the server');
 
     element.querySelector<HTMLButtonElement>('.retry-btn')?.click();
     respond(http, fixture);

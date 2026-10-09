@@ -43,11 +43,15 @@
     }
   </div>
 
-  <button type="submit">Record interaction</button>
+    <button type="submit" [disabled]="saving()">
+    {{ saving() ? 'Recording…' : 'Record interaction' }}
+  </button>
+
+  @if (error(); as err) {
+  <p role="alert" class="error">{{ err.detail ?? err.title }}</p>
+  }
 
   @if (lastRecorded(); as r) {
-  <p role="status" class="success">
-    Recorded {{ r.channel }} interaction for {{ r.customerId }}. (Demo data; resets on refresh.)
-  </p>
+  <p role="status" class="success">Recorded {{ r.channel }} interaction.</p>
   }
 </form>
