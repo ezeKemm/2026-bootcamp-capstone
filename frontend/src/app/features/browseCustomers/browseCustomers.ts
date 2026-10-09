@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { Router } from '@angular/router';
 import { Auth } from '../../core/auth/auth';
 import { ApiError } from '../../core/http/api-error';
-import { CustomerStatus } from '../customers/customer.model';
-import { PublicCustomer, PublicCustomerApi } from '../customers/public-customer-api';
+import { Customer, CustomerStatus } from '../customers/customer.model';
+import { CustomerApi } from '../customers/customer-api';
 
 type StatusFilter = 'All' | CustomerStatus;
 
@@ -14,18 +14,18 @@ const STATUS_LABELS: Record<CustomerStatus, string> = {
 };
 
 @Component({
-  selector: 'app-home',
-  templateUrl: './home.html',
-  styleUrl: './home.css',
+  selector: 'app-browseCustomers',
+  templateUrl: './browseCustomers.html',
+  styleUrl: './browseCustomers.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Home {
+export class BrowseCustomers {
   private readonly router = inject(Router);
-  private readonly api = inject(PublicCustomerApi);
+  private readonly customerApi = inject(CustomerApi);
   protected readonly auth = inject(Auth);
 
   // Data from the server, plus loading / error state.
-  readonly customers = signal<PublicCustomer[]>([]);
+  readonly customers = signal<Customer[]>([]);
   readonly totalItems = signal(0);
   readonly loading = signal(true);
   readonly error = signal<ApiError | null>(null);
@@ -53,7 +53,7 @@ export class Home {
     this.loading.set(true);
     this.error.set(null);
 
-    this.api.list(filter === 'All' ? undefined : filter).subscribe({
+    this.customerApi.list(filter === 'All' ? undefined : filter).subscribe({
       next: (page) => {
         this.customers.set(page.items);
         this.totalItems.set(page.totalItems);
@@ -78,8 +78,12 @@ export class Home {
   }
 
   /** A guest's only action: go to the login page. */
-  signIn(): void {
-    void this.router.navigate(['/login'], { queryParams: { returnUrl: '/customers' } });
+  // signIn(): void {
+  //   void this.router.navigate(['/login']);
+  // }
+
+  openCustomer(customer: { customerId: string }): void {
+    void this.router.navigate(['/customers', customer.customerId]);
   }
 
   label(option: StatusFilter): string {
