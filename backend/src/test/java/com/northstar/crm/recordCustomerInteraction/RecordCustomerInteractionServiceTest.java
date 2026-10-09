@@ -55,6 +55,7 @@ public class RecordCustomerInteractionServiceTest {
         assertThat(response.interactionId()).isNotNull();
         assertThat(response.occurredAt()).isNotNull();
 
+        verify(events).publishEvent(new InteractionRecorded(savedInteraction));
         verify(interactionRepository).save(any(CustomerInteraction.class));
     }
 
@@ -72,6 +73,7 @@ public class RecordCustomerInteractionServiceTest {
         );
 
         verifyNoInteractions(interactionRepository);
+        verifyNoInteractions(events);
     }
 
     @Test
