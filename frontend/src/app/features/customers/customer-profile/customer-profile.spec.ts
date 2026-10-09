@@ -1,30 +1,31 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { By } from '@angular/platform-browser';
-import { Auth } from '../../../core/auth/auth';
+import { UserRole } from '../../../core/auth/auth';
+import { signInAs } from '../../../core/auth/auth.testing';
 import { RecordInteractionForm } from '../../interactions/record-interaction-form/record-interaction-form';
 import { CustomerProfile } from './customer-profile';
 
-const AGENT: [string, string] = ['agent', 'agent123'];
-const ADMIN: [string, string] = ['admin', 'admin123'];
+const AGENT: UserRole = 'AGENT';
+const ADMIN: UserRole = 'ADMIN';
 
-function render(id: string, login?: [string, string]) {
-  if (login) {
-    TestBed.inject(Auth)
-      .login(...login)
-      .subscribe();
+function render(id: string, role?: UserRole) {
+  if (role) {
+    signInAs(role);
   }
-
   const fixture = TestBed.createComponent(CustomerProfile);
   fixture.componentRef.setInput('id', id);
   fixture.detectChanges();
-
   return { fixture, el: fixture.nativeElement as HTMLElement };
 }
+
 
 describe('CustomerProfile', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CustomerProfile],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
   });
 
