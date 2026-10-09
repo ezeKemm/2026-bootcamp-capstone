@@ -79,7 +79,7 @@ export class Home {
 
   /** A guest's only action: go to the login page. */
   signIn(): void {
-    void this.router.navigate(['/login']);
+    void this.router.navigate(['/login'], { queryParams: { returnUrl: '/customers' } });
   }
 
   label(option: StatusFilter): string {
