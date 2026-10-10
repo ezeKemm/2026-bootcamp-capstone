@@ -1,9 +1,9 @@
 <section class="page">
   <!-- Guests see this banner; their only action is to sign in. -->
   @if (!auth.isLoggedIn()) {
-  <div class="guest-banner" role="note">
+  <div data-testid="guest-banner" class="guest-banner" role="note">
     <p>You're browsing as a guest. Sign in to view customer details and record interactions.</p>
-    <button type="button" class="sign-in-btn" (click)="signIn()">Sign in</button>
+    <button data-testid="sign-in-btn" type="button" class="sign-in-btn" (click)="signIn()">Sign in</button>
   </div>
   }
 
@@ -63,7 +63,7 @@
     <tbody>
     @for (customer of customers(); track $index) {
     <tr>
-      <td class="name-cell">{{ customer.fullName }}</td>
+      <td data-testid="home-customer-name" class="name-cell">{{ customer.fullName }}</td>
       <td class="status-col">
               <span
                 class="badge"
