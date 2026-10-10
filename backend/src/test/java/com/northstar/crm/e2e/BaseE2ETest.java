@@ -71,7 +71,8 @@ abstract class BaseE2ETest {
      *  Should always select on data-testid over more fragile selectors which can change, unless necessary.
      *  */
     public static By byTestId(String testId) {
-        return By.cssSelector("[data-testid='" + testId + "'");
+        return By.cssSelector("[data-testid='" + testId + "']");
+    }
     /**
      * Fills in the login form and submits it.
      * Call it while on the login page (e.g. after opening a protected page as a guest).
