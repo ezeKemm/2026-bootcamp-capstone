@@ -3,12 +3,16 @@ package com.northstar.crm.e2e;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Browser end-to-end tests (Selenium). Opens a fresh Chrome for every test and closes it afterwards.
@@ -35,6 +39,16 @@ abstract class BaseE2ETest {
     void openBrowser() {
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--window-size=1280,900");
+        // Stop Chrome's own password popups ("Save password?", "Change your password" breach warning).
+        // They sit on top of the page and block clicks after logging in with the weak demo accounts (agent1/agent1).
+        // TODO(e2e): Remove these password-manager settings once the demo accounts are replaced with real users
+        //  and strong passwords, so Chrome no longer flags them as breached.
+        Map<String, Object> prefs = new HashMap<>();
+        prefs.put("credentials_enable_service", false);
+        prefs.put("profile.password_manager_enabled", false);
+        prefs.put("profile.password_manager_leak_detection", false);
+        options.setExperimentalOption("prefs", prefs);
+        options.addArguments("--disable-features=PasswordLeakDetection");
         if (Boolean.parseBoolean(System.getProperty("e2e.headless", "false"))) {
             options.addArguments("--headless=new");
         }
@@ -48,5 +62,15 @@ abstract class BaseE2ETest {
         if (driver != null) {
             driver.quit();
         }
+    }
+
+    /**
+     * Fills in the login form and submits it.
+     * Call it while on the login page (e.g. after opening a protected page as a guest).
+     */
+    protected void signIn(String username, String password) {
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("username"))).sendKeys(username);
+        driver.findElement(By.id("password")).sendKeys(password);
+        driver.findElement(By.cssSelector("form button[type='submit']")).click();
     }
 }
