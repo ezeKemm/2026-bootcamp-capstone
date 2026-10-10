@@ -27,23 +27,22 @@ class InteractionEventConsumerIntegrationTest {
     private InteractionEventPublisher publisher;
 
     @Test
-    void logsEachDeliveryIncludingRepeatedEvents(CapturedOutput output) throws Exception {
+    void handlesARepeatedEventOnlyOnce(CapturedOutput output) throws Exception {
         var event = CustomerInteractionRecordedV1.create(
-                UUID.randomUUID(), Instant.parse("2026-10-08T12:00:00Z"),
-                "consumer-test-" + UUID.randomUUID(), "agent-demo",
-                UUID.randomUUID(), UUID.randomUUID(), "PHONE");
+            UUID.randomUUID(), Instant.parse("2026-10-08T12:00:00Z"),
+            "lab-request-001", "agent1",
+            UUID.randomUUID(), UUID.randomUUID(), "PHONE");
 
-        // Two explicit publications must produce two log entries, even for the same event ID.
+        // Kafka delivers at least once: the same event ID arrives twice.
         publisher.publish(event).get(30, TimeUnit.SECONDS);
         publisher.publish(event).get(30, TimeUnit.SECONDS);
 
-        String expected = "Received interaction event: eventId=" + event.eventId()
-                + ", interactionId=" + event.interactionId()
-                + ", correlationId=" + event.correlationId();
+        String received = "Received interaction event: eventId=" + event.eventId();
+        String skipped = "Skipping duplicate interaction event: eventId=" + event.eventId();
 
-        await().atMost(Duration.ofSeconds(30)).untilAsserted(() ->
-                assertThat(output.getAll().lines()
-                        .filter(line -> line.contains(expected))
-                        .count()).isEqualTo(2));
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            assertThat(output.getAll().lines().filter(line -> line.contains(received)).count()).isEqualTo(1);
+            assertThat(output.getAll().lines().filter(line -> line.contains(skipped)).count()).isEqualTo(1);
+        });
     }
 }
