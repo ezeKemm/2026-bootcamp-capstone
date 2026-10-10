@@ -7,6 +7,9 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.time.Duration;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
@@ -64,6 +67,12 @@ abstract class BaseE2ETest {
         }
     }
 
+    /** Helper function to select on `data-testid` HTML attribute.
+     *  Should always select on data-testid over more fragile selectors which can change, unless necessary.
+     *  */
+    public static By byTestId(String testId) {
+        return By.cssSelector("[data-testid='" + testId + "']");
+    }
     /**
      * Fills in the login form and submits it.
      * Call it while on the login page (e.g. after opening a protected page as a guest).
