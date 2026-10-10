@@ -18,7 +18,7 @@ class GuestHomePageTest extends BaseE2ETest {
 
         // Wait until the table has rows (the list comes from the backend, so it arrives a moment later).
         List<WebElement> nameCells = wait.until(ExpectedConditions.numberOfElementsToBeMoreThan(
-                By.cssSelector("table.customers td.name-cell"), 0));
+                byTestId("home-customer-name"), 0));
 
         List<String> names = nameCells.stream().map(WebElement::getText).toList();
         assertTrue(names.contains("Amina Khan"), "Expected Amina Khan in " + names);
@@ -29,12 +29,12 @@ class GuestHomePageTest extends BaseE2ETest {
     void signInButtonTakesGuestToLoginPage() {
         driver.get(BASE_URL + "/");
 
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(".guest-banner")));
-        driver.findElement(By.cssSelector(".sign-in-btn")).click();
+        wait.until(ExpectedConditions.visibilityOfElementLocated(byTestId("guest-banner")));
+        driver.findElement(byTestId("sign-in-btn")).click();
 
         wait.until(ExpectedConditions.urlContains("/login"));
         WebElement username = wait.until(
-                ExpectedConditions.visibilityOfElementLocated(By.id("username")));
+                ExpectedConditions.visibilityOfElementLocated(byTestId("login-username-input")));
         assertTrue(username.isDisplayed());
     }
 }

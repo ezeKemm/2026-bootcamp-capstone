@@ -3,6 +3,7 @@ package com.northstar.crm.e2e;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -48,5 +49,12 @@ abstract class BaseE2ETest {
         if (driver != null) {
             driver.quit();
         }
+    }
+
+    /** Helper function to select on `data-testid` HTML attribute.
+     *  Should always select on data-testid over more fragile selectors which can change, unless necessary.
+     *  */
+    public static By byTestId(String testId) {
+        return By.cssSelector("[data-testid='" + testId + "'");
     }
 }
