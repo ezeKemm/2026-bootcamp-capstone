@@ -5,16 +5,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.support.ui.WebDriverWait;
-
-import java.time.Duration;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -81,5 +80,16 @@ abstract class BaseE2ETest {
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("username"))).sendKeys(username);
         driver.findElement(By.id("password")).sendKeys(password);
         driver.findElement(By.cssSelector("form button[type='submit']")).click();
+    }
+
+    /** Clicks a customer's row on the signed-in /customers list, by full name. */
+    protected void openCustomer(String fullName) {
+        List<WebElement> rows = wait.until(ExpectedConditions.numberOfElementsToBeMoreThan(
+                By.cssSelector("table.customers tr.clickable-row"), 0));
+        rows.stream()
+                .filter(row -> row.findElement(By.cssSelector(".name-cell")).getText().equals(fullName))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No row for " + fullName))
+                .click();
     }
 }
