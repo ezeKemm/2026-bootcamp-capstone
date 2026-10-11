@@ -66,4 +66,9 @@ public class CorrelationFilter extends OncePerRequestFilter {
 
         return UUID.randomUUID().toString();
     }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        return request.getRequestURI().startsWith("/actuator/health");
+    }
 }
