@@ -16,9 +16,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Lab 21 evidence: Actuator health, liveness and readiness are UP and reachable without a token
- * (for deploy probes and smoke tests) and show no details; no other Actuator endpoint is reachable.
- * Runs against the real app with Testcontainers PostgreSQL and Kafka.
+ * Actuator health, liveness and readiness are UP and reachable without a token
+ * and show no details; no other Actuator endpoint is reachable.
  */
 @SpringBootTest(properties = "crm.jwt.secret=test-only-secret-not-used-anywhere-real-32+")
 @AutoConfigureMockMvc
