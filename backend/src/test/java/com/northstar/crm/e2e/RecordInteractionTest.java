@@ -2,11 +2,9 @@ package com.northstar.crm.e2e;
 
 import org.junit.jupiter.api.Test;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 
-import java.util.List;
 
 /** Agent story: record an interaction for an ACTIVE customer, and it is saved (survives reloading the timeline). */
 class RecordInteractionTest extends BaseE2ETest {
@@ -43,16 +41,5 @@ class RecordInteractionTest extends BaseE2ETest {
         wait.until(ExpectedConditions.urlToBe(BASE_URL + "/customers"));
         openCustomer("Amina Khan");
         wait.until(ExpectedConditions.textToBePresentInElementLocated(By.cssSelector("ol.timeline"), summary));
-    }
-
-    /** Clicks the customer's row on the /customers list. */
-    private void openCustomer(String fullName) {
-        List<WebElement> rows = wait.until(ExpectedConditions.numberOfElementsToBeMoreThan(
-                By.cssSelector("table.customers tr.clickable-row"), 0));
-        rows.stream()
-                .filter(row -> row.findElement(By.cssSelector(".name-cell")).getText().equals(fullName))
-                .findFirst()
-                .orElseThrow(() -> new AssertionError("No row for " + fullName))
-                .click();
     }
 }
