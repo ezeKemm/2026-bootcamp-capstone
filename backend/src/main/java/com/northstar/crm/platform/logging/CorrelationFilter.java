@@ -41,6 +41,9 @@ public class CorrelationFilter extends OncePerRequestFilter {
         response.setHeader(HEADER_NAME, correlationId);
 
         try {
+            if (!isHealthCheck) {
+
+            }
             filterChain.doFilter(request, response);
         } finally {
             long durationMs = (System.nanoTime() - startedAt) / 1_000_000;
