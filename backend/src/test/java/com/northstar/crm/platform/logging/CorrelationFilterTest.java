@@ -122,7 +122,7 @@ class CorrelationFilterTest {
         assertNull(idDuringRequest.get());
         assertNull(response.getHeader(CorrelationFilter.HEADER_NAME));
     }
-}
+
     @Test
     void removesCustomerAndOperationAddedDuringTheRequest() throws Exception {
         var request = new MockHttpServletRequest();
