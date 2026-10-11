@@ -34,6 +34,10 @@ spring:
       acks: all
       properties:
         enable.idempotence: true
+        # Fail fast on a down broker
+        delivery.timeout.ms: 10000
+        request.timeout.ms: 5000
+        max.block.ms: 3000
 
 crm:
   messaging:
