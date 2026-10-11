@@ -2,25 +2,23 @@ package com.northstar.crm.recordCustomerInteraction;
 
 import com.northstar.crm.domain.*;
 import com.northstar.crm.platform.messaging.CustomerInteractionRecordedV1;
-import com.northstar.crm.platform.messaging.InteractionEventPublisher;
+import com.northstar.crm.platform.messaging.Outbox;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.concurrent.CompletableFuture;
-
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class InteractionRecordedListenerTest {
 
-    @Mock InteractionEventPublisher publisher;
+    @Mock Outbox outbox;
 
     private CustomerInteraction interaction() {
         Customer customer = Customer.registerProspect("Amina Khan", "amina.khan@example.com");
@@ -29,14 +27,13 @@ class InteractionRecordedListenerTest {
     }
 
     @Test
-    void publishesEventWithFieldsFromSavedInteraction() {
-        when(publisher.publish(any())).thenReturn(CompletableFuture.completedFuture(null));
+    void addsOutboxEventFromSavedInteraction() {
         var i = interaction();
 
-        new InteractionRecordedListener(publisher).on(new InteractionRecorded(i));
+        new InteractionRecordedListener(outbox).on(new InteractionRecorded(i));
 
         var captor = ArgumentCaptor.forClass(CustomerInteractionRecordedV1.class);
-        verify(publisher).publish(captor.capture());
+        verify(outbox).add(captor.capture());
         assertThat(captor.getValue().interactionId()).isEqualTo(i.getInteractionId().value());
         assertThat(captor.getValue().customerId()).isEqualTo(i.getCustomerId().value());
         assertThat(captor.getValue().actor()).isEqualTo("agent1");
@@ -44,11 +41,11 @@ class InteractionRecordedListenerTest {
     }
 
     @Test
-    void failedPublishIsSwallowed() {
-        when(publisher.publish(any()))
-            .thenReturn(CompletableFuture.failedFuture(new RuntimeException("broker down")));
+    void outboxFailureRollsBackInteraction() {
+        doThrow(new IllegalStateException("database timeout")).when(outbox).add(any());
 
-        assertThatCode(() -> new InteractionRecordedListener(publisher)
-            .on(new InteractionRecorded(interaction()))).doesNotThrowAnyException();
+        assertThatThrownBy(() -> new InteractionRecordedListener(outbox)
+            .on(new InteractionRecorded(interaction())))
+            .isInstanceOf(IllegalStateException.class);
     }
 }
