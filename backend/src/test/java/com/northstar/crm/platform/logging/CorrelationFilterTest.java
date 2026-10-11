@@ -123,3 +123,17 @@ class CorrelationFilterTest {
         assertNull(response.getHeader(CorrelationFilter.HEADER_NAME));
     }
 }
+    @Test
+    void removesCustomerAndOperationAddedDuringTheRequest() throws Exception {
+        var request = new MockHttpServletRequest();
+        var response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+            MDC.put(CorrelationFilter.CUSTOMER_MDC_KEY, "5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11");
+            MDC.put(CorrelationFilter.OPERATION_MDC_KEY, "view");
+        });
+
+        assertNull(MDC.get(CorrelationFilter.CUSTOMER_MDC_KEY));
+        assertNull(MDC.get(CorrelationFilter.OPERATION_MDC_KEY));
+    }
+}
