@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Structured console logging.
+  Every line carries the request's MDC fields so support can search one request end to end:
+    corr = correlation ID (X-Correlation-Id, set by CorrelationFilter)
+    cust = customer ID the request is working on (set by the slice's service, when known)
+    op   = operation name, e.g. activate, record_interaction (set by the slice's service)
+  Never put names, emails, note text, tokens or passwords in a log message or in MDC (docs/logging.md).
+-->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <property name="CRM_LOG_PATTERN"
+              value="%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z',UTC} %-5level [%thread] %logger{36} corr=%X{correlationId} cust=%X{customerId} op=%X{operation} - %msg%n"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CRM_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <logger name="com.northstar.crm" level="INFO"/>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>
