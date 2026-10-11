@@ -1,10 +1,9 @@
 package com.northstar.crm.recordCustomerInteraction;
 
-import com.northstar.crm.domain.Customer;
 import com.northstar.crm.domain.CustomerInteraction;
 import com.northstar.crm.platform.messaging.CustomerInteractionRecordedV1;
-import com.northstar.crm.platform.messaging.InteractionEventPublisher;
-import com.northstar.crm.showCustomerTimeline.dto.InteractionRecord;
+import com.northstar.crm.platform.messaging.Outbox;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -16,39 +15,28 @@ import java.util.UUID;
 @Component
 public class InteractionRecordedListener {
     private final static Logger log = LoggerFactory.getLogger(InteractionRecordedListener.class);
-    private final InteractionEventPublisher publisher;
 
-    InteractionRecordedListener(InteractionEventPublisher publisher) {
-        this.publisher = publisher;
+    private final Outbox outbox;
+
+    InteractionRecordedListener(Outbox outbox) {
+        this.outbox = outbox;
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    /**
+     * Events are persisted within the transaction in the outbox table
+     * so a publisher failure does not swallow the event
+     */
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
     void on (InteractionRecorded record) {
         CustomerInteraction i = record.interaction();
-        try {
-            var event = CustomerInteractionRecordedV1.create(
-                UUID.randomUUID(),
-                i.getOccurredAt(),
-                i.getCorrelationId(),
-                i.getActor(),
-                i.getCustomerId().value(),
-                i.getInteractionId().value(),
-                i.getChannel().name());
-            publisher.publish(event).whenComplete((ok, error) -> {
-                if (error != null) {
-                    logFailure(i, error);
-                }
-            });
-        } catch (RuntimeException err) {
-            logFailure(i, err);
-        }
-    }
-
-    // Failed events are swallowed TODO: resilience (retry) and/or outbox pattern?
-    private void logFailure(CustomerInteraction i, Throwable error) {
-        log.error("Failed to publish interaction event: interactionId={}, correlationId={}, error={}",
+        var event = CustomerInteractionRecordedV1.create(
+            UUID.randomUUID(),
+            i.getOccurredAt(),
+            i.getCorrelationId(),
+            i.getActor(),
+            i.getCustomerId().value(),
             i.getInteractionId().value(),
-            String.valueOf(i.getCorrelationId()).replace('\r', '_').replace('\n', '_'),
-            error.toString());
+            i.getChannel().name());
+            outbox.add(event);
     }
 }
