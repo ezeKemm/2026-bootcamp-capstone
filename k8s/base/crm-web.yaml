@@ -1,0 +1,82 @@
+# The Angular build served by unprivileged nginx. The image name is a placeholder that CD replaces with the digest.
+# The API is reached through the Ingress on the same address (path /api), so nginx does not proxy.
+apiVersion: v1
+kind: Service
+metadata:
+  name: crm-web
+  labels:
+    app.kubernetes.io/name: crm-web
+    app.kubernetes.io/part-of: northstar-crm
+    crm.northstar/tier: app
+spec:
+  selector:
+    app.kubernetes.io/name: crm-web
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crm-web
+  labels:
+    app.kubernetes.io/name: crm-web
+    app.kubernetes.io/part-of: northstar-crm
+    crm.northstar/tier: app
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: crm-web
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: crm-web
+        app.kubernetes.io/part-of: northstar-crm
+        crm.northstar/tier: app
+    spec:
+      enableServiceLinks: false
+      imagePullSecrets:
+        - name: ghcr-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101 # the nginx user of nginx-unprivileged; numeric, because the image's USER is a name
+        runAsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: crm-web
+          image: northstar-crm-frontend:placeholder-set-by-cd
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 2
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 2
+          resources:
+            requests: {cpu: 20m, memory: 32Mi}
+            limits: {memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

@@ -1,0 +1,100 @@
+# PostgreSQL 18, single instance, data on a PersistentVolume (k3s local-path: a directory on the instance's disk).
+# The API creates the schema itself (Flyway) on first start. Credentials come from the crm-secrets Secret.
+# Changing DB_PASSWORD in the Secret later does NOT change the password inside an existing database; see the runbook.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: northstar-crm
+    crm.northstar/tier: data
+spec:
+  clusterIP: None # headless: the StatefulSet's stable name; clients use postgres:5432
+  selector:
+    app.kubernetes.io/name: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/part-of: northstar-crm
+    crm.northstar/tier: data
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres
+        app.kubernetes.io/part-of: northstar-crm
+        crm.northstar/tier: data
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgres
+          image: postgres:18.6 # = postgres:latest on 2026-10-12; TODO(team): pin by digest once the registry is reachable (Dependabot's docker ecosystem does not read manifests)
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef: {name: crm-config, key: DB_NAME}
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef: {name: crm-secrets, key: DB_USERNAME}
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: crm-secrets, key: DB_PASSWORD}
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {memory: 512Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            # PostgreSQL 18+ keeps the cluster in a versioned subdirectory of /var/lib/postgresql (same mount as compose.yaml).
+            - name: data
+              mountPath: /var/lib/postgresql
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app.kubernetes.io/name: postgres
+          app.kubernetes.io/part-of: northstar-crm
+          crm.northstar/tier: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
