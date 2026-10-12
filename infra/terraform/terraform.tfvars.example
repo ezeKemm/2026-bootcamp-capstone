@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars (git-ignored) and fill in. Never commit the real file.
+region         = "us-east-2"
+ssh_public_key = "ssh-ed25519 AAAA... your-key-comment"
+
+# Your public address(es) with /32, for example from https://checkip.amazonaws.com. Leave empty to keep SSH closed.
+ssh_allowed_cidrs = ["203.0.113.7/32"]
+
+# Optional overrides:
+# instance_type  = "t3.large"
+# root_volume_gb = 30
+# k3s_version    = "v1.36.5+k3s1"
