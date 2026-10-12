@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = "crm.jwt.secret=test-only-secret-not-used-anywhere-real-32+")
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
-class ShowCustomerTimelineIntegrationTest {
+class ShowCustomerTimelineIT {
 
     // Seeded by Flyway V2: Amina is ACTIVE, Ravi is PROSPECT.
     private static final String AMINA = "5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11";
