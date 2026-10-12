@@ -53,13 +53,13 @@ crm:
     ttl: 1h
 
   security:
-    agent-password: ${CRM_AGENT_PASSWORD:agent1}   # lab-only demo users (Lab 28)
+    agent-password: ${CRM_AGENT_PASSWORD:agent1}   # lab-only demo users
     admin-password: ${CRM_ADMIN_PASSWORD:admin1}
 
   cors:
     allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:4200}
 
-# Spring Boot Actuator (Lab 21). Only health and metrics are exposed; never expose env, beans or configprops.
+# Spring Boot Actuator. Only health and metrics are exposed; never expose env, beans or configprops.
 # /actuator/metrics/** is ADMIN only (SecurityConfig): it shows request traffic and error rates.
 # /actuator/health/** is public (SecurityConfig) for deploy probes and smoke tests, so it shows no details.
 # Readiness includes the database: not ready if PostgreSQL is unreachable. Kafka is deliberately NOT
