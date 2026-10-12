@@ -1,0 +1,18 @@
+# Time-limited Trivy exceptions for the image gate (.github/workflows/image.yaml).
+# Each entry must say why, and expires so it cannot go unreviewed.
+vulnerabilities:
+  - id: CVE-2026-78667
+    paths:
+      - usr/bin/pebble
+    statement: Go stdlib in the base image's pebble binary; no fixed base image yet and pebble is not used at runtime. Revisit when the base image is rebuilt.
+    expired_at: 2026-10-26
+  - id: CVE-2026-78669
+    paths:
+      - usr/bin/pebble
+    statement: Same as CVE-2026-78667 (pebble, Go stdlib in the base image).
+    expired_at: 2026-10-26
+  - id: CVE-2026-97031
+    paths:
+      - usr/bin/pebble
+    statement: Same as CVE-2026-78667 (pebble, Go stdlib in the base image).
+    expired_at: 2026-10-26
