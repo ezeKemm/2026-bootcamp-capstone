@@ -32,6 +32,10 @@
 		<!-- Overrides the Tomcat version managed by Spring Boot 4.1.1 (11.0.24). 11.0.25 fixes CVE-2026-65637.
      		 TODO(vulnerability): Remove this when the Spring Boot parent ships Tomcat 11.0.25 or later. -->
 		<tomcat.version>11.0.25</tomcat.version>
+		<!-- Overrides Jackson versions managed by Spring Boot 4.1.1 (2.21.5 / 3.1.5); the fixed releases clear the image Trivy gate.
+		     TODO(vulnerability): Remove when the Spring Boot parent ships these versions or later. -->
+		<jackson-2-bom.version>2.21.7</jackson-2-bom.version>
+		<jackson-bom.version>3.1.7</jackson-bom.version>
 		<!-- Browser end-to-end tests are tagged "e2e" and skipped by default (they need Chrome + the running app).
 		     Run only them with the e2e profile: mvnw test -Pe2e -->
 		<excludedGroups>e2e</excludedGroups>
@@ -149,6 +153,12 @@
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>
+			<!-- TODO(vulnerability): lz4-java 1.10.1 (via kafka-clients) is flagged HIGH; 1.11.4 is fixed. Remove when managed upstream. -->
+			<dependency>
+				<groupId>at.yawk.lz4</groupId>
+				<artifactId>lz4-java</artifactId>
+				<version>1.11.4</version>
+			</dependency>
 			<dependency>
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-dependencies</artifactId>
