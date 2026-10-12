@@ -70,7 +70,7 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
-		<!-- Health checks (Lab 21): /actuator/health and the liveness/readiness probes -->
+		<!-- Health checks: /actuator/health and the liveness/readiness probes -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
