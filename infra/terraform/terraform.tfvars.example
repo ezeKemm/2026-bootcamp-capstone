@@ -6,6 +6,15 @@ ssh_public_key = "ssh-ed25519 AAAA... your-key-comment"
 ssh_allowed_cidrs = ["203.0.113.7/32"]
 
 # Optional overrides:
-# instance_type  = "t3.large"
 # root_volume_gb = 30
 # k3s_version    = "v1.36.5+k3s1"
+
+# Default: two instances (dev, stage), t3.large each. To change sizes:
+# instances = {
+#   dev   = { instance_type = "t3.medium", namespaces = ["crm-dev"] }
+#   stage = { instance_type = "t3.large", namespaces = ["crm-stage"] }
+# }
+# Budget fallback, one shared instance (then add host rules to the Ingress, see infra/README.md):
+# instances = {
+#   shared = { instance_type = "t3.xlarge", namespaces = ["crm-dev", "crm-stage"] }
+# }

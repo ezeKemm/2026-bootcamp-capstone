@@ -10,12 +10,6 @@ variable "name" {
   default     = "northstar-crm"
 }
 
-variable "instance_type" {
-  description = "Instance size. PostgreSQL, Kafka, the API, the web app and k3s need about 4 GB at rest; 8 GB leaves room for rollouts."
-  type        = string
-  default     = "t3.large"
-}
-
 variable "root_volume_gb" {
   description = "Size of the encrypted root volume. PostgreSQL and Kafka data live on it (k3s local-path)."
   type        = number
@@ -51,8 +45,26 @@ variable "k3s_version" {
   default     = "v1.36.5+k3s1"
 }
 
-variable "namespaces" {
-  description = "Application namespaces, one per deployed environment."
-  type        = list(string)
-  default     = ["crm-dev", "crm-stage"]
+variable "instances" {
+  description = <<-EOT
+    One k3s instance per entry: the key names the instance, namespaces lists the application namespaces created on it.
+    Default: one instance per deployed environment, so dev and stage are fully separate clusters with their own address.
+    Budget fallback: one shared instance, for example { shared = { instance_type = "t3.xlarge", namespaces = ["crm-dev", "crm-stage"] } };
+    then both environments share one address and the Ingress needs host rules (see infra/README.md).
+    PostgreSQL, Kafka, the API, the web app and k3s need about 4 GB at rest per environment; 8 GB leaves room for rollouts.
+  EOT
+  type = map(object({
+    instance_type = string
+    namespaces    = list(string)
+  }))
+  default = {
+    dev = {
+      instance_type = "t3.large"
+      namespaces    = ["crm-dev"]
+    }
+    stage = {
+      instance_type = "t3.large"
+      namespaces    = ["crm-stage"]
+    }
+  }
 }
