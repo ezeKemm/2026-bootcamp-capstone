@@ -1,7 +1,7 @@
 variable "region" {
   description = "AWS region. Must be one the organisation's policies allow."
   type        = string
-  default     = "us-east-2"
+  default     = "us-west-2"
 }
 
 variable "name" {
