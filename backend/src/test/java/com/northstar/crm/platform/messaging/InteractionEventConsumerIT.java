@@ -1,7 +1,6 @@
-package com.northstar.crm;
+package com.northstar.crm.platform.messaging;
 
-import com.northstar.crm.platform.messaging.CustomerInteractionRecordedV1;
-import com.northstar.crm.platform.messaging.InteractionEventPublisher;
+import com.northstar.crm.TestcontainersConfiguration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +20,7 @@ import static org.awaitility.Awaitility.await;
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @ExtendWith(OutputCaptureExtension.class)
-class InteractionEventConsumerIntegrationTest {
+class InteractionEventConsumerIT {
 
     @Autowired
     private InteractionEventPublisher publisher;
