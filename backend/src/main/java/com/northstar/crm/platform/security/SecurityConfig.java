@@ -55,6 +55,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()   // CORS preflight
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/public/customers").permitAll()   // guest browse (backlog)
+                        .requestMatchers(HttpMethod.GET, "/actuator/health/**").permitAll()        // health + probes for deploy/smoke
+                        .requestMatchers(HttpMethod.GET, "/actuator/metrics", "/actuator/metrics/**").hasRole("ADMIN")   // traffic and error rates: operators only
                         .requestMatchers(HttpMethod.POST, "/api/v1/customers/*/activate").hasAnyRole("AGENT", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/customers/*/interactions").hasAnyRole("AGENT", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/customers/*/interactions").hasAnyRole("AGENT", "ADMIN")
@@ -101,7 +103,7 @@ public class SecurityConfig {
 
     @Bean
     UserDetailsService users(AuthProperties props, PasswordEncoder encoder) {
-        // Lab-only in-memory users (Lab 28). Swap for a users table later if needed.
+        // Lab-only in-memory users. Swap for a users table later if needed.
         return new InMemoryUserDetailsManager(
                 User.withUsername("agent1").password(encoder.encode(props.security().agentPassword())).roles("AGENT").build(),
                 User.withUsername("admin1").password(encoder.encode(props.security().adminPassword())).roles("ADMIN").build());
