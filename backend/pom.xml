@@ -160,6 +160,13 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+			<!-- Runs the *IT integration tests (Testcontainers) during `mvnw verify`, after the unit tests.
+			     Surefire only picks up *Test / *Tests classes, so without this plugin *IT classes never run.
+			     Version and integration-test/verify goals come from spring-boot-starter-parent. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+			</plugin>
 		</plugins>
 	</build>
 
