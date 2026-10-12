@@ -13,14 +13,14 @@ public class TestcontainersConfiguration {
 	@Bean
 	@ServiceConnection
 	KafkaContainer kafkaContainer() {
-		return new KafkaContainer(DockerImageName.parse("apache/kafka:latest"))
+		return new KafkaContainer(DockerImageName.parse("apache/kafka:4.3.1"))
 				.withEnv("KAFKA_AUTO_CREATE_TOPICS_ENABLE", "false");
 	}
 
 	@Bean
 	@ServiceConnection
 	PostgreSQLContainer postgresContainer() {
-		return new PostgreSQLContainer(DockerImageName.parse("postgres:latest"));
+		return new PostgreSQLContainer(DockerImageName.parse("postgres:18.6"));
 	}
 
 }
