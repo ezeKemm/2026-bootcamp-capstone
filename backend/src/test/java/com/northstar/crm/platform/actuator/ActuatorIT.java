@@ -15,6 +15,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Actuator health, liveness and readiness are UP and reachable without a token
+ * and show no details; no other Actuator endpoint is reachable.
+ */
 @SpringBootTest(properties = "crm.jwt.secret=test-only-secret-not-used-anywhere-real-32+")
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
