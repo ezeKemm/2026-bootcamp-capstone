@@ -1,0 +1,37 @@
+# OPTIONAL, not part of the base. k3s enforces NetworkPolicy itself. Apply it per namespace once the application works:
+#   kubectl -n crm-dev apply -f k8s/optional/networkpolicy.yaml
+# PostgreSQL and Kafka then accept connections from the API only. If the application stops working after this, delete it:
+#   kubectl -n crm-dev delete -f k8s/optional/networkpolicy.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-from-api-only
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: crm-api
+      ports:
+        - port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kafka-from-api-only
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: kafka
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: crm-api
+      ports:
+        - port: 9092

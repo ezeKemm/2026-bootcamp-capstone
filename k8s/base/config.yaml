@@ -1,0 +1,14 @@
+# Non-secret settings shared by the API and PostgreSQL. CORS_ALLOWED_ORIGIN is not here: CD writes it (ConfigMap crm-env) from the
+# environment's PUBLIC_ORIGIN variable, because it depends on the address of the instance.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crm-config
+  labels:
+    app.kubernetes.io/name: crm-config
+    app.kubernetes.io/part-of: northstar-crm
+    crm.northstar/tier: config
+data:
+  DB_NAME: crm
+  DB_URL: jdbc:postgresql://postgres:5432/crm
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9092

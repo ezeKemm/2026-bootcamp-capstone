@@ -1,0 +1,31 @@
+# k3s ships Traefik as the default ingress controller, so no ingressClassName is needed. One address, two paths:
+#   /api -> crm-api (the API keeps its /api prefix; nothing is stripped)      / -> crm-web (the Angular app)
+# /actuator is deliberately NOT routed: health and metrics are reached by probes and by the cluster, never from the Internet.
+# No host is set, so the rule matches any address that reaches the instance. Two environments on ONE instance need a host each
+# (see infra/README.md, "Budget fallback"): add `host:` with an overlay patch.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: crm
+  labels:
+    app.kubernetes.io/name: crm
+    app.kubernetes.io/part-of: northstar-crm
+    crm.northstar/tier: app
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: crm-api
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: crm-web
+                port:
+                  name: http

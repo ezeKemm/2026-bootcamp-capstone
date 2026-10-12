@@ -1,0 +1,12 @@
+# Everything one environment needs, without the environment's name: the overlays add the namespace.
+# Apply the data tier first (label crm.northstar/tier=data), wait for it, then the app tier: scripts/cd/deploy.sh does exactly that.
+# Secrets are not here: CD creates crm-secrets and ghcr-pull from the GitHub Environment (see docs/capstone-cicd-runbook.md).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - config.yaml
+  - postgres.yaml
+  - kafka.yaml
+  - crm-api.yaml
+  - crm-web.yaml
+  - ingress.yaml
