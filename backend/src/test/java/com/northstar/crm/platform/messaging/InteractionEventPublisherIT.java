@@ -1,7 +1,6 @@
-package com.northstar.crm;
+package com.northstar.crm.platform.messaging;
 
-import com.northstar.crm.platform.messaging.CustomerInteractionRecordedV1;
-import com.northstar.crm.platform.messaging.InteractionEventPublisher;
+import com.northstar.crm.TestcontainersConfiguration;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -25,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
-class InteractionEventPublisherIntegrationTest {
+class InteractionEventPublisherIT {
 
     @Autowired
     private InteractionEventPublisher publisher;

@@ -1,5 +1,6 @@
-package com.northstar.crm;
+package com.northstar.crm.platform.messaging;
 
+import com.northstar.crm.TestcontainersConfiguration;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
