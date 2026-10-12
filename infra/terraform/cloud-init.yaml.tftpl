@@ -17,7 +17,8 @@ write_files:
       set -euo pipefail
       export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-      until kubectl get nodes >/dev/null 2>&1; do sleep 3; done
+      # "get nodes" succeeds with an empty list before the node registers, so wait until a node exists, then until it is Ready.
+      until [ -n "$(kubectl get nodes -o name 2>/dev/null)" ]; do sleep 3; done
       kubectl wait --for=condition=Ready node --all --timeout=300s
 
       for ns in ${join(" ", namespaces)}; do
