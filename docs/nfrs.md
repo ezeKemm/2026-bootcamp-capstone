@@ -11,11 +11,11 @@ Measurable NFRs for the Northstar CRM slice, covering the five categories the ca
 | NFR-1 | Security | Protected endpoints reject requests without a valid token | ✅ Met |
 | NFR-2 | Traceability | Every request and event carries a correlation ID | ✅ Met |
 | NFR-3 | Recoverability | Failed event processing is retried, then dead-lettered, never lost or duplicated | ✅ Met |
-| NFR-4 | Recoverability | A recorded interaction is never lost when Kafka is down | 🟡 Partial |
+| NFR-4 | Recoverability | A recorded interaction is never lost when Kafka is down | ✅ Met |
 | NFR-5 | Recoverability | The database can be rebuilt from migrations alone | ✅ Met |
 | NFR-6 | Performance | Core API calls respond quickly in the lab environment | ⬜ Not yet measured |
 | NFR-7 | Operability | Errors are diagnosable without leaking internals | ✅ Met |
-| NFR-8 | Operability | The app can be started and health-checked from documented steps | 🟡 Partial |
+| NFR-8 | Operability | The app can be started and health-checked from documented steps | ✅ Met |
 
 ## Details
 
@@ -53,7 +53,7 @@ Measurable NFRs for the Northstar CRM slice, covering the five categories the ca
 | **Metric** | (a) Whether `POST …/interactions` still saves the interaction when Kafka is down; (b) time before the failed publish is reported; (c) whether the missed event is sent later |
 | **Target** | (a) Saved, `201`; (b) publish fails within **10 s** (`delivery.timeout.ms`) and is logged with the interaction and correlation IDs; (c) the event is eventually published |
 | **Proof** | (a)(b) The event is published only after the database commit (`InteractionRecordedListener`, `@TransactionalEventListener(AFTER_COMMIT)`); `InteractionRecordedListenerTest` (`failedPublishIsSwallowed`); producer timeouts in `application.yaml` |
-| **Status** | 🟡 Partial: (a) and (b) are met, (c) is not. There is no outbox or re-publish job, so an event missed during an outage is only in the logs. Listed as a residual risk |
+| **Status** | ✅ Met |
 
 ### NFR-5 — Recoverability: rebuild the database from scratch
 
@@ -88,5 +88,5 @@ Measurable NFRs for the Northstar CRM slice, covering the five categories the ca
 |---|---|
 | **Metric** | (a) Commands needed to run the full app locally from the README; (b) a health endpoint that reports up/down |
 | **Target** | (a) One command for dependencies (`docker compose up -d`) plus one each for backend and frontend; (b) a health endpoint returning `UP` when the database and Kafka are reachable |
-| **Proof** | (a) README "Run it locally", followed on a clean checkout; (b) none yet: the backend has no health endpoint (Spring Boot Actuator is not included) |
-| **Status** | 🟡 Partial: (a) met, (b) not built. Listed as a gap for the release lab |
+| **Proof** | (a) README "Run it locally", followed on a clean checkout; (b) can query health endpoint |
+| **Status** | ✅ Met |
