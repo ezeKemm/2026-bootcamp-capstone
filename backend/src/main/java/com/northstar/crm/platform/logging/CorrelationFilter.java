@@ -75,4 +75,18 @@ public class CorrelationFilter extends OncePerRequestFilter {
 
         return UUID.randomUUID().toString();
     }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        var uri = request.getRequestURI();
+        // Normalize uri
+        if (uri.isEmpty() || !uri.startsWith("/")) {
+            uri = "/" + uri;
+        }
+        if (uri.startsWith("/actuator/health")) {
+            MDC.clear();
+            return true;
+        }
+        return false;
+    }
 }
