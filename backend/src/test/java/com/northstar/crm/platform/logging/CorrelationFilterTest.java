@@ -2,12 +2,15 @@ package com.northstar.crm.platform.logging;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.MDC;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -92,6 +95,32 @@ class CorrelationFilterTest {
             "request-with-error",
             response.getHeader(CorrelationFilter.HEADER_NAME)
         );
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+       "actuator/health",
+       "actuator/health/liveness",
+       "actuator/health/readiness"
+    })
+    void filterSkipsHealthchecks(String path) throws Exception {
+        String correlationId = "lab-request-001";
+        var request = new MockHttpServletRequest("GET", path);
+        request.setRequestURI(path);
+        var response = new MockHttpServletResponse();
+        var chainCalled = new AtomicBoolean(false);
+        var idDuringRequest = new AtomicReference<String>();
+        request.addHeader(CorrelationFilter.HEADER_NAME, correlationId);
+        MDC.put(CorrelationFilter.MDC_KEY, "previous-value");
+
+        filter.doFilter(request, response, (servletRequest, servletResponse) -> {
+            chainCalled.set(true);
+            idDuringRequest.set(MDC.get(CorrelationFilter.MDC_KEY));
+        });
+
+        assertTrue(chainCalled.get());
+        assertNull(idDuringRequest.get());
+        assertNull(response.getHeader(CorrelationFilter.HEADER_NAME));
     }
 
     @Test
