@@ -11,6 +11,11 @@ public class InteractionEventConsumer {
 
     private static final Logger log =
             LoggerFactory.getLogger(InteractionEventConsumer.class);
+    private final InteractionEventHandler handler;
+
+    public InteractionEventConsumer(InteractionEventHandler handler) {
+        this.handler = handler;
+    }
 
     @KafkaListener(
             topics = "${crm.messaging.interactions-topic}",
@@ -24,10 +29,7 @@ public class InteractionEventConsumer {
             return;
         }
 
-        log.info("Received interaction event: eventId={}, interactionId={}, correlationId={}, "
-                        + "topic={}, partition={}, offset={}",
-                event.eventId(), event.interactionId(),
-                event.correlationId().replace('\r', '_').replace('\n', '_'),
-                record.topic(), record.partition(), record.offset());
+        // Logs or dedupes
+        handler.handle(record, event);
     }
 }

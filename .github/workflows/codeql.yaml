@@ -1,0 +1,64 @@
+# CodeQL static analysis for the Java backend and the TypeScript frontend (docs/github-actions-plan.md, SAST).
+# It complements SpotBugs + Find Security Bugs in ci.yaml: different engine, different findings.
+# IMPORTANT: GitHub's "default setup" for code scanning conflicts with this file. Turn it off first
+# (Settings > Code security > Code scanning), or the uploads are rejected.
+# Not part of CI on purpose: the Image workflow does not wait for it. Make it a required check only if the team wants that.
+name: 'CodeQL'
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Weekly, so new queries run on code that has not changed.
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  analyze:
+    name: analyze (${{ matrix.language }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: java-kotlin
+            build-mode: manual
+          - language: javascript-typescript
+            build-mode: none
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        if: matrix.language == 'java-kotlin'
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: "backend/pom.xml"
+      - uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-extended
+      # Compile only: the tests already run in ci.yaml.
+      - name: Compile the backend
+        if: matrix.language == 'java-kotlin'
+        run: |
+          cd backend
+          bash ./mvnw -B -ntp -DskipTests -DskipITs package
+      - uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          category: "/language:${{ matrix.language }}"

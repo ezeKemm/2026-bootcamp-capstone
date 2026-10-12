@@ -19,6 +19,10 @@ public class CorrelationFilter extends OncePerRequestFilter {
 
     public static final String HEADER_NAME = "X-Correlation-Id";
     public static final String MDC_KEY = "correlationId";
+    /** MDC key for the customer a request works on; set by the slice's service, printed as cust=. */
+    public static final String CUSTOMER_MDC_KEY = "customerId";
+    /** MDC key for the operation name (e.g. activate); set by the slice's service, printed as op=. */
+    public static final String OPERATION_MDC_KEY = "operation";
 
     private static final Logger logger = LoggerFactory.getLogger(CorrelationFilter.class);
     private static final Pattern VALID_ID = Pattern.compile("[A-Za-z0-9._-]{1,60}");
@@ -49,6 +53,11 @@ public class CorrelationFilter extends OncePerRequestFilter {
                 durationMs
             );
 
+            // Services add cust/op during the request; remove them so they never leak into
+            // the next request handled by this thread.
+            MDC.remove(CUSTOMER_MDC_KEY);
+            MDC.remove(OPERATION_MDC_KEY);
+
             if (previousCorrelationId == null) {
                 MDC.remove(MDC_KEY);
             } else {
@@ -65,5 +74,19 @@ public class CorrelationFilter extends OncePerRequestFilter {
         }
 
         return UUID.randomUUID().toString();
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        var uri = request.getRequestURI();
+        // Normalize uri
+        if (uri.isEmpty() || !uri.startsWith("/")) {
+            uri = "/" + uri;
+        }
+        if (uri.startsWith("/actuator/health")) {
+            MDC.clear();
+            return true;
+        }
+        return false;
     }
 }

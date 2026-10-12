@@ -1,8 +1,6 @@
-package com.northstar.crm;
+package com.northstar.crm.platform.messaging;
 
-import com.northstar.crm.platform.messaging.CustomerInteractionRecordedV1;
-import com.northstar.crm.platform.messaging.InteractionEventConsumer;
-import com.northstar.crm.platform.messaging.InteractionEventPublisher;
+import com.northstar.crm.TestcontainersConfiguration;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -46,7 +44,7 @@ import static org.mockito.Mockito.doAnswer;
 })
 @Import(TestcontainersConfiguration.class)
 @ExtendWith(OutputCaptureExtension.class)
-class InteractionEventConsumerFailureIntegrationTest {
+class InteractionEventConsumerFailureIT {
 
     @Autowired
     private InteractionEventPublisher publisher;

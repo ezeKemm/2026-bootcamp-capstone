@@ -32,6 +32,9 @@
 		<!-- Overrides the Tomcat version managed by Spring Boot 4.1.1 (11.0.24). 11.0.25 fixes CVE-2026-65637.
      		 TODO(vulnerability): Remove this when the Spring Boot parent ships Tomcat 11.0.25 or later. -->
 		<tomcat.version>11.0.25</tomcat.version>
+		<!-- Browser end-to-end tests are tagged "e2e" and skipped by default (they need Chrome + the running app).
+		     Run only them with the e2e profile: mvnw test -Pe2e -->
+		<excludedGroups>e2e</excludedGroups>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -66,6 +69,11 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+		<!-- Health checks: /actuator/health and the liveness/readiness probes -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.kafka</groupId>
@@ -112,6 +120,12 @@
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Selenium for the browser end-to-end tests in src/test/java/.../e2e (version managed by Spring Boot). -->
+		<dependency>
+			<groupId>org.seleniumhq.selenium</groupId>
+			<artifactId>selenium-java</artifactId>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-testcontainers</artifactId>
@@ -144,17 +158,74 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
-
 	<build>
 		<plugins>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-clean-plugin</artifactId>
+				<version>3.3.2</version>
+			</plugin>
+			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<version>3.5.5</version>
+			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.13</version>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals><goal>prepare-agent</goal></goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>post-integration-test</phase>
+						<goals><goal>report</goal></goals>
+					</execution>
+					<execution>
+						<id>check</id>
+						<phase>verify</phase>
+						<goals><goal>check</goal></goals>
+						<configuration>
+							<rules>
+								<rule>
+									<element>BUNDLE</element>
+									<!-- Only the business logic counts toward the gate. -->
+									<includes>
+										<include>com/northstar/crm/domain/*</include>
+										<include>com/northstar/crm/*/*Service</include>
+									</includes>
+									<limits>
+										<limit>
+											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.80</minimum>
+										</limit>
+									</limits>
+								</rule>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
 
 	<profiles>
+		<!-- mvnw test -Pe2e : run ONLY the Selenium end-to-end tests (needs Chrome, Docker, backend :8080, frontend :4200). -->
+		<profile>
+			<id>e2e</id>
+			<properties>
+				<groups>e2e</groups>
+				<excludedGroups>none</excludedGroups>
+			</properties>
+		</profile>
 		<profile>
 			<id>security-scan</id>
 			<build>

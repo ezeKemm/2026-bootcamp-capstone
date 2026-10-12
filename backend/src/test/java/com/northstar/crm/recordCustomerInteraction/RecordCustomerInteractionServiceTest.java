@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.Optional;
 
@@ -19,11 +20,11 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class RecordCustomerInteractionServiceTest {
-    @Mock
-    private InteractionRepository interactionRepository;
+    @Mock private InteractionRepository interactionRepository;
 
-    @Mock
-    private CustomerRepository customerRepository;
+    @Mock private CustomerRepository customerRepository;
+
+    @Mock private ApplicationEventPublisher events;
 
     @Test
     void recordsInteractionAndMapsToResponse() {
@@ -41,7 +42,7 @@ public class RecordCustomerInteractionServiceTest {
         when(customerRepository.findById(customer.getCustomerId())).thenReturn(Optional.of(customer));
         when(interactionRepository.save(any(CustomerInteraction.class))).thenReturn(savedInteraction);
 
-        RecordCustomerInteractionService service = new RecordCustomerInteractionService(interactionRepository, customerRepository);
+        RecordCustomerInteractionService service = new RecordCustomerInteractionService(interactionRepository, customerRepository, events);
         RecordInteractionRequest request = new RecordInteractionRequest(InteractionChannel.EMAIL, "Sent onboarding email.");
 
         RecordInteractionResponse response = service.record(customerId, request, "agent1", "lab-request-001");
@@ -54,6 +55,7 @@ public class RecordCustomerInteractionServiceTest {
         assertThat(response.interactionId()).isNotNull();
         assertThat(response.occurredAt()).isNotNull();
 
+        verify(events).publishEvent(new InteractionRecorded(savedInteraction));
         verify(interactionRepository).save(any(CustomerInteraction.class));
     }
 
@@ -62,7 +64,7 @@ public class RecordCustomerInteractionServiceTest {
         CustomerId customerId = CustomerId.generate();
         when(customerRepository.findById(customerId)).thenReturn(Optional.empty());
 
-        RecordCustomerInteractionService service = new RecordCustomerInteractionService(interactionRepository, customerRepository);
+        RecordCustomerInteractionService service = new RecordCustomerInteractionService(interactionRepository, customerRepository, events);
         RecordInteractionRequest request = new RecordInteractionRequest(InteractionChannel.PHONE, "Called about the account.");
 
         assertThrows(
@@ -71,6 +73,7 @@ public class RecordCustomerInteractionServiceTest {
         );
 
         verifyNoInteractions(interactionRepository);
+        verifyNoInteractions(events);
     }
 
     @Test
@@ -79,7 +82,7 @@ public class RecordCustomerInteractionServiceTest {
         Customer prospect = Customer.registerProspect("Ravi Singh", "ravi.singh@example.com");
         when(customerRepository.findById(customerId)).thenReturn(Optional.of(prospect));
 
-        RecordCustomerInteractionService service = new RecordCustomerInteractionService(interactionRepository, customerRepository);
+        RecordCustomerInteractionService service = new RecordCustomerInteractionService(interactionRepository, customerRepository, events);
         RecordInteractionRequest request = new RecordInteractionRequest(InteractionChannel.CHAT, "Introduced services.");
 
         DomainException exception = assertThrows(
