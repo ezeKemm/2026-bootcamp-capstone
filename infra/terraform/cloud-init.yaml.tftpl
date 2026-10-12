@@ -1,0 +1,81 @@
+#cloud-config
+# First-boot setup for the Northstar CRM k3s node. Rendered by Terraform (see main.tf).
+# Progress: /var/log/cloud-init-output.log. The last line of a good run is "crm-bootstrap: done".
+# Shell variables below use $name without braces, because Terraform would read the braced form as its own template syntax.
+package_update: true
+packages:
+  - curl
+  - ca-certificates
+
+write_files:
+  - path: /usr/local/sbin/crm-bootstrap.sh
+    permissions: "0750"
+    content: |
+      #!/usr/bin/env bash
+      # Creates the application namespaces and, in each, a "deployer" ServiceAccount that CD uses.
+      # The Role is limited to its own namespace: it can apply the application's own kinds and watch rollouts, nothing else.
+      set -euo pipefail
+      export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+      until kubectl get nodes >/dev/null 2>&1; do sleep 3; done
+      kubectl wait --for=condition=Ready node --all --timeout=300s
+
+      for ns in ${join(" ", namespaces)}; do
+        kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f -
+        cat <<MANIFEST | kubectl apply -f -
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: deployer
+        namespace: $ns
+      ---
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: Role
+      metadata:
+        name: deployer
+        namespace: $ns
+      rules:
+        - apiGroups: [""]
+          resources: [services, configmaps, secrets, persistentvolumeclaims]
+          verbs: [get, list, watch, create, update, patch]
+        - apiGroups: [""]
+          resources: [pods, pods/log, events]
+          verbs: [get, list, watch]
+        - apiGroups: [apps]
+          resources: [deployments, statefulsets, replicasets]
+          verbs: [get, list, watch, create, update, patch]
+        - apiGroups: [networking.k8s.io]
+          resources: [ingresses]
+          verbs: [get, list, watch, create, update, patch]
+      ---
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: deployer
+        namespace: $ns
+      subjects:
+        - kind: ServiceAccount
+          name: deployer
+          namespace: $ns
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: Role
+        name: deployer
+      ---
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: deployer-token
+        namespace: $ns
+        annotations:
+          kubernetes.io/service-account.name: deployer
+      type: kubernetes.io/service-account-token
+      MANIFEST
+      done
+      touch /var/lib/crm-bootstrap.done
+      echo "crm-bootstrap: done"
+
+runcmd:
+  # Pinned release; Traefik (ingress) and the local-path storage class stay enabled. --tls-san puts the Elastic IP into the API certificate.
+  - curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='${k3s_version}' sh -s - server --tls-san ${public_ip} --write-kubeconfig-mode 600
+  - /usr/local/sbin/crm-bootstrap.sh

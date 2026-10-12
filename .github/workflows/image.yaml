@@ -1,0 +1,126 @@
+# Builds, scans and marks the two images. Starts only after the whole "CI" workflow succeeded for a push to main.
+# 1. Each image is built from source with its multi-stage Dockerfile and pushed to GHCR as sha-<commit>.
+# 2. Trivy scans the pushed image by digest. Gate: any HIGH or CRITICAL finding that has a fix fails the job (docs/github-actions-plan.md).
+# 3. When both images passed, both get the tag passed-<commit>. That tag, and the digests printed in the job summary, are the input of
+#    the CD workflow. Nothing here deploys; the CD workflow never builds.
+# A workflow_run run is a fresh run on the default branch, so the commit comes from github.event.workflow_run, never from github.sha.
+name: Image
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+permissions: {}
+
+env:
+  COMMIT: ${{ github.event.workflow_run.head_sha }}
+
+concurrency:
+  group: image-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build and scan (${{ matrix.name }})
+    # Only a successful CI run of a push (never a pull request, never a fork) on main.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: backend, context: backend, image: northstar-crm-backend}
+          - {name: frontend, context: frontend, image: northstar-crm-frontend}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.COMMIT }}
+          persist-credentials: false
+      # GHCR needs lower-case names; GitHub user names may have capitals.
+      - name: Image name
+        run: echo "REF=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${{ matrix.image }}" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/Dockerfile
+          push: true
+          tags: ${{ env.REF }}:sha-${{ env.COMMIT }}
+          build-args: GIT_SHA=${{ env.COMMIT }}
+          provenance: false # keeps the digest that of the image itself, not of an attestation index
+      - name: Scan the pushed image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ${{ env.REF }}@${{ steps.build.outputs.digest }}
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Record the digest
+        run: |
+          mkdir -p out
+          echo "${{ steps.build.outputs.digest }}" > "out/${{ matrix.name }}.digest"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: digest-${{ matrix.name }}
+          path: out/${{ matrix.name }}.digest
+          if-no-files-found: error
+
+  promote:
+    name: mark as passed
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: digest-*
+          merge-multiple: true
+          path: digests
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Add the passed tag and print the digests
+        run: |
+          set -euo pipefail
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          backend="$(cat digests/backend.digest)"
+          frontend="$(cat digests/frontend.digest)"
+          docker buildx imagetools create -t "ghcr.io/$owner/northstar-crm-backend:passed-$COMMIT" "ghcr.io/$owner/northstar-crm-backend@$backend"
+          docker buildx imagetools create -t "ghcr.io/$owner/northstar-crm-frontend:passed-$COMMIT" "ghcr.io/$owner/northstar-crm-frontend@$frontend"
+          {
+            echo "### Images that passed for \`$COMMIT\`"
+            echo
+            echo "| Image | Digest |"
+            echo "| --- | --- |"
+            echo "| northstar-crm-backend | \`$backend\` |"
+            echo "| northstar-crm-frontend | \`$frontend\` |"
+            echo
+            echo "Deploy with the CD workflow: environment \`dev\`, then \`stage\`, using exactly these two digests."
+            echo "Scan gate: HIGH and CRITICAL findings with a fix fail the build (Trivy, unfixed findings ignored)."
+          } >> "$GITHUB_STEP_SUMMARY"

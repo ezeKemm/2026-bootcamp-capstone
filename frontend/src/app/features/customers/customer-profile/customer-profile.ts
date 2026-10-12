@@ -1,13 +1,17 @@
 import { DatePipe } from '@angular/common';
 import {
+  afterNextRender,
   ChangeDetectionStrategy,
   Component,
   computed,
   effect,
+  ElementRef,
   inject,
+  Injector,
   input,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { Auth } from '../../../core/auth/auth';
 import { ApiError } from '../../../core/http/api-error';
@@ -62,6 +66,13 @@ export class CustomerProfile {
 protected readonly interactions = signal<Interaction[]>([]);
 protected readonly timelineError = signal<ApiError | null>(null);
 
+  // ADDED (record popup): the form lives in a <dialog>; its result shows above the timeline.
+  private readonly injector = inject(Injector);
+  private readonly recordDialog = viewChild<ElementRef<HTMLDialogElement>>('recordDialog');
+  private readonly recordResult = viewChild<ElementRef<HTMLElement>>('recordResult');
+  protected readonly recordError = signal<ApiError | null>(null);
+  protected readonly lastRecorded = signal<Interaction | null>(null);
+
   constructor() {
     // Load the customer now, and again whenever the :id in the URL changes.
     effect(() => {
@@ -90,12 +101,46 @@ protected readonly timelineError = signal<ApiError | null>(null);
     });
   }
 
+  // ADDED (record popup): opens the form as a modal. A new attempt clears the last result.
+  protected openRecordDialog(): void {
+    this.recordError.set(null);
+    this.lastRecorded.set(null);
+    this.recordDialog()?.nativeElement.showModal();
+  }
+
+  // ADDED (record popup)
+  protected closeRecordDialog(): void {
+    this.recordDialog()?.nativeElement.close();
+  }
+
   protected onRecorded(saved: Interaction): void {
   this.interactions.update((list) => [saved, ...list]);
+    // ADDED (record popup): close the popup and confirm above the timeline.
+    this.recordError.set(null);
+    this.lastRecorded.set(saved);
+    this.showRecordResult();
 }
+
+  // ADDED (record popup): the server rejected the entry. Close the popup and say why above the timeline.
+  protected onRecordFailed(err: ApiError): void {
+    this.lastRecorded.set(null);
+    this.recordError.set(err);
+    this.showRecordResult();
+  }
+
+  // ADDED (record popup): closes the popup, then moves focus to the message once it is on the page.
+  // Focusing it scrolls it into view on a long timeline and makes screen readers read it.
+  private showRecordResult(): void {
+    this.closeRecordDialog();
+    afterNextRender(() => this.recordResult()?.nativeElement.focus(), { injector: this.injector });
+  }
+
 private load(id: string): void {
     this.loading.set(true);
     this.error.set(null);
+    // ADDED (record popup): a different customer starts with no leftover record result.
+    this.recordError.set(null);
+    this.lastRecorded.set(null);
     this.loadTimeline(id);
 
     this.api.getCustomer(id).subscribe({

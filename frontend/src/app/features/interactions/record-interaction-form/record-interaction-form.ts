@@ -15,6 +15,12 @@ export class RecordInteractionForm {
   readonly customerId = input.required<string>();
   readonly recorded = output<Interaction>();
 
+  // ADDED (record popup): lets a host screen show the result itself.
+  /** false = the host shows the server error / success message, so this form stays quiet. */
+  readonly showResult = input(true);
+  /** Emits the server's error when saving fails (the form keeps the typed text for a retry). */
+  readonly failed = output<ApiError>();
+
   protected readonly channels = INTERACTION_CHANNELS;
   protected readonly summaryMaxLength = 500;
   protected readonly lastRecorded = signal<Interaction | null>(null);
@@ -60,6 +66,7 @@ this.api
     },
     error: (err: ApiError) => {
       this.error.set(err);
+      this.failed.emit(err); // ADDED (record popup)
       this.saving.set(false);
     },
   });

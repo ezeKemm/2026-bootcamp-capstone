@@ -1,0 +1,11 @@
+# State holds resource details and can contain secrets: never commit it.
+*.tfstate
+*.tfstate.*
+crash.log
+.terraform/
+terraform.tfvars
+*.auto.tfvars
+*.pem
+*.key
+# Keep the lock file so everyone gets the same provider build.
+!.terraform.lock.hcl

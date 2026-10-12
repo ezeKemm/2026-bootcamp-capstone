@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../../../environments/environment';
+import { ApiError } from '../../../core/http/api-error';
 import { Interaction } from '../interaction.model';
 import { RecordInteractionForm } from './record-interaction-form';
 
@@ -90,6 +91,40 @@ describe('RecordInteractionForm', () => {
 
     expect(el.querySelector('[role="alert"]')?.textContent).toContain('Customer is not active.');
     expect(emitted.length).toBe(0);
+  });
+
+  // ADDED (record popup)
+  it('emits the server error through failed so a host screen can show it', () => {
+    const { fixture, http, emitted, fill, submit } = setup();
+    const failures: ApiError[] = [];
+    fixture.componentInstance.failed.subscribe((e) => failures.push(e));
+    fill('PHONE', 'Called about renewal');
+    submit();
+
+    http.expectOne(URL).flush(
+      { title: 'Business rule violated', status: 422, detail: 'Customer is not active.' },
+      { status: 422, statusText: 'Unprocessable Content' },
+    );
+    fixture.detectChanges();
+
+    expect(failures.length).toBe(1);
+    expect(failures[0].detail).toBe('Customer is not active.');
+    expect(emitted.length).toBe(0);
+  });
+
+  // ADDED (record popup)
+  it('stays quiet about the result when showResult is false, but still emits it', () => {
+    const { fixture, el, http, emitted, fill, submit } = setup();
+    fixture.componentRef.setInput('showResult', false);
+    fill('PHONE', 'Called about renewal');
+    submit();
+
+    http.expectOne(URL).flush(SAVED, { status: 201, statusText: 'Created' });
+    fixture.detectChanges();
+
+    expect(emitted).toEqual([SAVED]);
+    expect(el.querySelector('[role="status"]')).toBeNull();
+    expect(el.querySelector('[role="alert"]')).toBeNull();
   });
 
   it('rejects a summary that is only spaces', () => {
