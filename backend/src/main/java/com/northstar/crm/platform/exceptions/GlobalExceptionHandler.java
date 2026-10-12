@@ -36,6 +36,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     /** 404: the customer id doesn't exist. */
     @ExceptionHandler(CustomerNotFoundException.class)
     ResponseEntity<Object> handleCustomerNotFound(CustomerNotFoundException ex, WebRequest request) {
+        log.warn("rejected request status=404 reason=customer_not_found");
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         problem.setTitle("Customer not found");
         return createResponseEntity(problem, new HttpHeaders(), HttpStatus.NOT_FOUND, request);
@@ -44,6 +45,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     /** 422: request was fine, but it breaks a business rule (e.g. activating a non-prospect). */
     @ExceptionHandler(DomainException.class)
     ResponseEntity<Object> handleBusinessRule(DomainException ex, WebRequest request) {
+        // Domain messages are fixed sentences (no customer data), so they are safe to log.
+        log.warn("rejected request status=422 reason=business_rule detail=\"{}\"", ex.getMessage());
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(UNPROCESSABLE, ex.getMessage());
         problem.setTitle("Business rule violated");
         return createResponseEntity(problem, new HttpHeaders(), UNPROCESSABLE, request);
@@ -53,6 +56,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
             MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        // Field names only, never the submitted values.
+        log.warn("rejected request status=400 reason=validation fields={}",
+                ex.getBindingResult().getFieldErrors().stream().map(error -> error.getField()).distinct().toList());
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, "One or more fields are invalid.");
         problem.setTitle("Validation failed");
         List<Map<String, String>> errors = ex.getBindingResult().getFieldErrors().stream()
