@@ -262,7 +262,7 @@ paths:
       description: |
         No request body. Maps to `Customer.activate()` in the UML.
         Roles: AGENT and ADMIN.
-        OPEN - what happens if the customer is already ACTIVE (409 assumed below)?
+        A customer who is not a PROSPECT (e.g. already ACTIVE) cannot be activated: 422.
       responses:
         '200':
           description: Customer is now ACTIVE. Returns the updated customer.
@@ -286,16 +286,16 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/CustomerNotFound'
-        '409':
-          description: Customer is already ACTIVE (OPEN - confirm).
+        '422':
+          description: Customer is not a PROSPECT (e.g. already ACTIVE).
           content:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
               example:
-                title: Customer already active
-                status: 409
-                detail: Customer 5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11 is already ACTIVE.
+                title: Business rule violated
+                status: 422
+                detail: Only prospects can be activated.
                 correlationId: lab-request-001
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
