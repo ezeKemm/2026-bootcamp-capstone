@@ -1,0 +1,145 @@
+# Deploys two image digests to one environment on k3s. This workflow never builds anything.
+# Path A, manual: Actions, CD, Run workflow. Pick dev or stage and paste the two digests from the Image workflow's job summary.
+# Path B, tag: pushing a tag v* deploys the images that passed for the tagged commit (tag passed-<commit>) to dev.
+# Stage (and later prod) is protected by the GitHub Environment: a required reviewer who did not start the run (docs/environment-strategy.md).
+# Each GitHub Environment holds its own cluster address, token and secrets (names are in docs/capstone-cicd-runbook.md).
+# A failed rollout, smoke test or digest check ends in an automatic rollback to the previous revision; the run still ends red.
+name: CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        required: true
+        options: [dev, stage]
+      backend_digest:
+        description: Digest of northstar-crm-backend (sha256:...)
+        type: string
+        required: true
+      frontend_digest:
+        description: Digest of northstar-crm-frontend (sha256:...)
+        type: string
+        required: true
+  push:
+    tags: ["v*"]
+
+permissions: {}
+
+concurrency:
+  group: cd-${{ github.event_name == 'push' && 'dev' || inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    name: resolve digests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      environment: ${{ steps.pick.outputs.environment }}
+      backend_digest: ${{ steps.pick.outputs.backend_digest }}
+      frontend_digest: ${{ steps.pick.outputs.frontend_digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pick environment and digests
+        id: pick
+        env:
+          EVENT: ${{ github.event_name }}
+          IN_ENV: ${{ inputs.environment }}
+          IN_BACKEND: ${{ inputs.backend_digest }}
+          IN_FRONTEND: ${{ inputs.frontend_digest }}
+        run: |
+          set -euo pipefail
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          if [ "$EVENT" = "push" ]; then
+            environment=dev
+            backend="$(scripts/cd/resolve-digest.sh "ghcr.io/$owner/northstar-crm-backend:passed-$GITHUB_SHA")"
+            frontend="$(scripts/cd/resolve-digest.sh "ghcr.io/$owner/northstar-crm-frontend:passed-$GITHUB_SHA")"
+          else
+            environment="$IN_ENV"; backend="$IN_BACKEND"; frontend="$IN_FRONTEND"
+          fi
+          scripts/cd/validate-digest.sh "$backend" "$frontend"
+          # The digests must exist in the registry, so a typo fails here and not in the cluster.
+          docker buildx imagetools inspect "ghcr.io/$owner/northstar-crm-backend@$backend" >/dev/null
+          docker buildx imagetools inspect "ghcr.io/$owner/northstar-crm-frontend@$frontend" >/dev/null
+          {
+            echo "environment=$environment"
+            echo "backend_digest=$backend"
+            echo "frontend_digest=$frontend"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "### Deploy request"
+            echo "- Environment: \`$environment\`"
+            echo "- Commit of the manifests and scripts: \`$GITHUB_SHA\`"
+            echo "- API image: \`$backend\`"
+            echo "- Web image: \`$frontend\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: deploy to ${{ needs.resolve.outputs.environment }}
+    needs: resolve
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: ${{ needs.resolve.outputs.environment }}
+    permissions:
+      contents: read
+    env:
+      ENVIRONMENT: ${{ needs.resolve.outputs.environment }}
+      BACKEND_DIGEST: ${{ needs.resolve.outputs.backend_digest }}
+      FRONTEND_DIGEST: ${{ needs.resolve.outputs.frontend_digest }}
+      K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
+      PUBLIC_ORIGIN: ${{ vars.PUBLIC_ORIGIN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Write the kubeconfig
+        env:
+          K3S_SERVER: ${{ vars.K3S_SERVER }}
+          K3S_CA_DATA: ${{ secrets.K3S_CA_DATA }}
+          K3S_TOKEN: ${{ secrets.K3S_TOKEN }}
+        run: |
+          set -euo pipefail
+          scripts/cd/write-kubeconfig.sh "$RUNNER_TEMP/kubeconfig"
+          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
+      - name: Check access
+        run: |
+          kubectl version --client
+          kubectl auth can-i update deployments --namespace "$K8S_NAMESPACE"
+      - name: Deploy
+        id: deploy
+        env:
+          IMAGE_OWNER: ${{ github.repository_owner }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          CRM_AGENT_PASSWORD: ${{ secrets.CRM_AGENT_PASSWORD }}
+          CRM_ADMIN_PASSWORD: ${{ secrets.CRM_ADMIN_PASSWORD }}
+          GHCR_PULL_USER: ${{ secrets.GHCR_PULL_USER }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+        run: |
+          set -euo pipefail
+          IMAGE_OWNER="${IMAGE_OWNER,,}" scripts/cd/deploy.sh
+      - name: Smoke test
+        env:
+          BASE_URL: ${{ vars.PUBLIC_ORIGIN }}
+          CRM_AGENT_PASSWORD: ${{ secrets.CRM_AGENT_PASSWORD }}
+        run: scripts/cd/smoke-test.sh
+      - name: Roll back
+        # Only when the application tier was applied: a failure before that changed nothing to undo.
+        if: failure() && steps.deploy.outputs.applied == 'true'
+        run: scripts/cd/rollback.sh
+      - name: Summary
+        if: always()
+        run: echo "Result of the deploy to $ENVIRONMENT is \`${{ job.status }}\`." >> "$GITHUB_STEP_SUMMARY"
