@@ -56,6 +56,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/public/customers").permitAll()   // guest browse (backlog)
                         .requestMatchers(HttpMethod.GET, "/actuator/health/**").permitAll()        // health + probes for deploy/smoke (Lab 29)
+                        .requestMatchers(HttpMethod.GET, "/actuator/metrics", "/actuator/metrics/**").hasRole("ADMIN")   // traffic and error rates: operators only
                         .requestMatchers(HttpMethod.POST, "/api/v1/customers/*/activate").hasAnyRole("AGENT", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/v1/customers/*/interactions").hasAnyRole("AGENT", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/customers/*/interactions").hasAnyRole("AGENT", "ADMIN")
