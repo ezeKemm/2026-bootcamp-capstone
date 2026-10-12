@@ -5,6 +5,7 @@ import { By } from '@angular/platform-browser';
 import { environment } from '../../../../environments/environment';
 import { UserRole } from '../../../core/auth/auth';
 import { signInAs } from '../../../core/auth/auth.testing';
+import { ApiError } from '../../../core/http/api-error';
 import { RecordInteractionForm } from '../../interactions/record-interaction-form/record-interaction-form';
 import { Interaction } from '../../interactions/interaction.model';
 import { Customer } from '../customer.model';
@@ -60,6 +61,17 @@ function respond(
 }
 
 describe('CustomerProfile', () => {
+  // ADDED (record popup): jsdom has no <dialog> methods yet, so give it the two this screen calls.
+  beforeAll(() => {
+    const proto = HTMLDialogElement.prototype;
+    proto.showModal ??= function (this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    };
+    proto.close ??= function (this: HTMLDialogElement) {
+      this.removeAttribute('open');
+    };
+  });
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CustomerProfile],
@@ -145,6 +157,88 @@ describe('CustomerProfile', () => {
       const items = el.querySelectorAll('.timeline li');
       expect(items.length).toBe(1);
       expect(items[0].textContent).toContain('Quarterly review.');
+    });
+
+    // ADDED (record popup)
+    describe('record popup', () => {
+      function openPopup() {
+        const view = render(AMINA_ID, 'AGENT');
+        respond(view.http, view.fixture, AMINA);
+        const dialog = view.el.querySelector<HTMLDialogElement>('dialog.record-dialog')!;
+        const form = view.fixture.debugElement.query(By.directive(RecordInteractionForm))
+          .componentInstance as RecordInteractionForm;
+        view.el.querySelector<HTMLButtonElement>('.record-trigger')!.click();
+        view.fixture.detectChanges();
+        return { ...view, dialog, form };
+      }
+
+      /** True when the message sits before the timeline section in the page. */
+      function isAboveTimeline(el: HTMLElement, selector: string): boolean {
+        const message = el.querySelector(selector)!;
+        const timeline = el.querySelector('#timeline-heading')!;
+        return Boolean(
+          message.compareDocumentPosition(timeline) & Node.DOCUMENT_POSITION_FOLLOWING,
+        );
+      }
+
+      it('keeps the form closed until the Record interaction header is clicked', () => {
+        const { fixture, http, el } = render(AMINA_ID, 'AGENT');
+        respond(http, fixture, AMINA);
+        const dialog = el.querySelector<HTMLDialogElement>('dialog.record-dialog')!;
+
+        expect(dialog.hasAttribute('open')).toBe(false);
+        expect(dialog.querySelector('app-record-interaction-form')).not.toBeNull();
+
+        el.querySelector<HTMLButtonElement>('.record-trigger')!.click();
+        expect(dialog.hasAttribute('open')).toBe(true);
+      });
+
+      it('closes from the Close button', () => {
+        const { el, dialog } = openPopup();
+        el.querySelector<HTMLButtonElement>('.dialog-close')!.click();
+        expect(dialog.hasAttribute('open')).toBe(false);
+      });
+
+      it('closes and confirms above the timeline after recording', () => {
+        const { fixture, el, dialog, form } = openPopup();
+        form.recorded.emit(SAVED);
+        fixture.detectChanges();
+
+        expect(dialog.hasAttribute('open')).toBe(false);
+        expect(el.querySelector('.record-success')?.textContent).toContain('PHONE');
+        expect(isAboveTimeline(el, '.record-success')).toBe(true);
+        expect(document.activeElement).toBe(el.querySelector('.record-success'));
+        expect(el.querySelectorAll('.timeline li').length).toBe(1);
+      });
+
+      it('closes and shows the server error above the timeline when saving fails', () => {
+        const { fixture, el, dialog, form } = openPopup();
+        const rejected: ApiError = {
+          status: 422,
+          title: 'Business rule violated',
+          detail: 'Customer is not active.',
+          fieldErrors: [],
+        };
+        form.failed.emit(rejected);
+        fixture.detectChanges();
+
+        expect(dialog.hasAttribute('open')).toBe(false);
+        expect(el.querySelector('.record-error')?.textContent).toContain('Customer is not active.');
+        expect(isAboveTimeline(el, '.record-error')).toBe(true);
+        expect(document.activeElement).toBe(el.querySelector('.record-error'));
+        expect(el.querySelector('.record-success')).toBeNull();
+      });
+
+      it('clears the last result when the popup is opened again', () => {
+        const { fixture, el, form } = openPopup();
+        form.recorded.emit(SAVED);
+        fixture.detectChanges();
+        expect(el.querySelector('.record-success')).not.toBeNull();
+
+        el.querySelector<HTMLButtonElement>('.record-trigger')!.click();
+        fixture.detectChanges();
+        expect(el.querySelector('.record-success')).toBeNull();
+      });
     });
 
     it('shows the hint instead of the form for a prospect', () => {
