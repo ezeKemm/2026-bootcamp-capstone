@@ -1,4 +1,5 @@
-# One AWS instance running single-node k3s (server and agent together), reached by an Elastic IP.
+# One AWS instance per entry in var.instances, each running single-node k3s (server and agent together), reached by its own Elastic IP.
+# Decision: docs/architecture/adrs/0003-k3s.md. No Terraform state, keys or tfvars are committed (see .gitignore).
 
 # Latest Canonical Ubuntu 24.04 image for the selected region (an AMI id is region-specific, so it is looked up, never hard-coded).
 data "aws_ssm_parameter" "ubuntu" {
@@ -23,10 +24,12 @@ resource "aws_key_pair" "this" {
 
 # Allocated first so its address can be baked into the k3s API certificate (--tls-san) at first boot.
 resource "aws_eip" "this" {
-  domain = "vpc"
-  tags   = { Name = "${var.name}-k3s" }
+  for_each = var.instances
+  domain   = "vpc"
+  tags     = { Name = "${var.name}-${each.key}" }
 }
 
+# One security group shared by all instances.
 resource "aws_security_group" "this" {
   name        = "${var.name}-k3s"
   description = "Northstar CRM k3s: web, Kubernetes API, optional SSH"
@@ -48,7 +51,7 @@ resource "aws_vpc_security_group_ingress_rule" "http" {
 resource "aws_vpc_security_group_ingress_rule" "https" {
   for_each          = toset(var.web_allowed_cidrs)
   security_group_id = aws_security_group.this.id
-  description       = "Application over HTTPS"
+  description       = "Application over HTTPS (later)"
   ip_protocol       = "tcp"
   from_port         = 443
   to_port           = 443
@@ -83,8 +86,9 @@ resource "aws_vpc_security_group_egress_rule" "all" {
 }
 
 resource "aws_instance" "this" {
+  for_each                    = var.instances
   ami                         = data.aws_ssm_parameter.ubuntu.value
-  instance_type               = var.instance_type
+  instance_type               = each.value.instance_type
   subnet_id                   = sort(data.aws_subnets.default.ids)[0]
   vpc_security_group_ids      = [aws_security_group.this.id]
   key_name                    = aws_key_pair.this.key_name
@@ -103,12 +107,12 @@ resource "aws_instance" "this" {
 
   user_data = templatefile("${path.module}/cloud-init.yaml.tftpl", {
     k3s_version = var.k3s_version
-    public_ip   = aws_eip.this.public_ip
-    namespaces  = var.namespaces
+    public_ip   = aws_eip.this[each.key].public_ip
+    namespaces  = each.value.namespaces
   })
   user_data_replace_on_change = false # changing the script must not silently destroy the cluster; replace deliberately
 
-  tags = { Name = "${var.name}-k3s" }
+  tags = { Name = "${var.name}-${each.key}" }
 
   lifecycle {
     ignore_changes = [ami] # a newer Ubuntu image must not replace a running cluster
@@ -116,6 +120,7 @@ resource "aws_instance" "this" {
 }
 
 resource "aws_eip_association" "this" {
-  instance_id   = aws_instance.this.id
-  allocation_id = aws_eip.this.id
+  for_each      = var.instances
+  instance_id   = aws_instance.this[each.key].id
+  allocation_id = aws_eip.this[each.key].id
 }
