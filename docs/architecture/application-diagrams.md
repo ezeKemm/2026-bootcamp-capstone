@@ -12,17 +12,17 @@ sequenceDiagram
     participant Domain as Customer
     participant Repo as JPA Repository
     participant DB as PostgreSQL
-    participant Notif as Notification Service
+    participant Notif as outbox plus relay
     participant Kafka
     autonumber
 
     User->>Client: Record Interaction
-    Client->>Controller: POST /api/v1/customers/CUS-1001/interaction
+    Client->>Controller: POST /api/v1/customers/UUID/interactions
     Controller->>Controller: Validate request
     Controller->>Service: CustomerInteractionRequest DTO
     Service->>DB: BEGIN transaction
-    Service->>Repo: Find CUS-1001
-    Repo->>DB: SELECT for CUS-1001
+    Service->>Repo: Find Customer by UUID
+    Repo->>DB: SELECT for Customer UUID
     DB-->>Repo: Return record
     Repo-->>Service: Return Customer
     Service->>Domain: Add interaction
@@ -31,7 +31,7 @@ sequenceDiagram
     DB-->>Repo: Confirm insertion
     Repo-->>Service: Return updated Customer
     Service->>DB: COMMIT transaction
-    Service->>Notif: Call Notification Service
+    Service->>Notif: Call outbox plus relay
     Notif->>Kafka: Send CustomerInteractionRecordedV1
     Service-->>Controller: CustomerInteractionResponse DTO
     Controller-->>Client: 201 Created
@@ -48,7 +48,7 @@ sequenceDiagram
     autonumber
 
     User->>Client: Record Interaction
-    Client->>Controller: POST /api/v1/customers/CUS-1001/interaction
+    Client->>Controller: POST /api/v1/customers/UUID/interactions
     Note over Controller, Valid: @Valid on request body
     Controller->>Valid: Validate request
     Valid-->>Controller: Exception
@@ -112,13 +112,11 @@ sequenceDiagram
       Repo-->>Service: DataAccessException
       Service->>DB: ROLLBACK transaction
       Service-->>Controller: Wrap or propogate
-      Controller-->>Client: 409 Conflict
     else Connection timeout
       DB--xRepo: Timeout, etc.
       Repo-->>Service: Connection Exception
       Service->>DB: ROLLBACK transaction
       Service-->>Controller: Wrap or propogate
-      Controller-->>Client: 503 Service Unavailable
     end
 ```
 
@@ -166,21 +164,8 @@ classDiagram
             +getCorrelationId() String
         }
     }
-
-    class RecordInteractionController {
-        -CustomerService service
-        CustomerController(CustomerService service)
-        recordInteraction() ResponseEntity
-    }
-    class RecordInteractionService {
-        -CustomerRepository customerRepo
-        -InteractionRepository interactionRepo
-        -NotificationService notifier
-        CustomerService(customerRepo, interactionRepo, notifier)
-        recordInteraction(OnboardRequestDTO customer) OnboardResponseDTO
-    }
     class CustomerRepository {
-        <<interface>>
+        <<interface>>```
         save(Customer customer) Customer
         findById(UUID id) Customer
         exists(UUID id) boolean

@@ -15,13 +15,10 @@ flowchart LR
 
 ## Environments
 
-| Env | OpenShift Project | GitHub Environment | Approvals | Config source |
+| Env | K3s | GitHub Environment | Approvals | Config source |
 | --- | --- | --- | --- | --- |
 | dev | `crm-dev` | `dev` | Optional | local ConfigMap/Secret |
-| test | `crm-test` | `test` | Optional | ConfigMap in `test.yaml`/GH Environment secrets |
-| stage | `crm-stage` | `stage` | Required: a reviewer who did not start the run | ConfigMap (`stage.yaml`)/GH Secret |
-| prod | `crm-prod` | `prod` | Required: a reviewer who did not start the run | ConfigMap (`prod.yaml`)/GH Secret |
-
+| stage | `crm-stage` | `stage` | Required: a reviewer who did not start the run | ConfigMap (`stage.yaml`)/GH Secret 
 
 ## Promotion gates 
 
