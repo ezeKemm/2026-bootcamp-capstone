@@ -38,7 +38,7 @@ if [ "$code" = "401" ]; then pass "no token gives 401"; else fail "no token gave
 
 # 5
 token="$(http -X POST "$BASE_URL/api/v1/auth/login" -H 'Content-Type: application/json' \
-  -d "$(jq -n --arg p "$CRM_AGENT_PASSWORD" '{username:"agent",password:$p}')" | jq -r '.accessToken // empty' || true)"
+  -d "$(jq -n --arg p "$CRM_AGENT_PASSWORD" '{username:"agent1",password:$p}')" | jq -r '.accessToken // empty' || true)"
 if [ -n "$token" ]; then
   pass "agent login returned a token"
   headers="$(mktemp)"
