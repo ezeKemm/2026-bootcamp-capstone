@@ -286,14 +286,42 @@ describe('CustomerProfile', () => {
   });
 
   describe('as an admin', () => {
-    it('shows the full timeline heading and no record form', () => {
+    it('shows the full timeline heading', () => {
       const { fixture, http, el } = render(AMINA_ID, 'ADMIN');
       respond(http, fixture, AMINA);
 
       expect(el.querySelector('#timeline-heading')?.textContent).toContain(
         'Full interaction timeline',
       );
+    });
+
+    it('shows the record form for an active customer', () => {
+      const { fixture, http, el } = render(AMINA_ID, 'ADMIN');
+      respond(http, fixture, AMINA);
+
+      expect(el.querySelector('app-record-interaction-form')).not.toBeNull();
+      expect(el.querySelector('.record-trigger')).not.toBeNull();
+    });
+
+    it('adds a recorded interaction to the full timeline', () => {
+      const { fixture, http, el } = render(AMINA_ID, 'ADMIN');
+      respond(http, fixture, AMINA);
+
+      const form = fixture.debugElement.query(By.directive(RecordInteractionForm))
+        .componentInstance as RecordInteractionForm;
+      form.recorded.emit(SAVED);
+      fixture.detectChanges();
+
+      expect(el.querySelectorAll('.timeline li').length).toBe(1);
+      expect(el.querySelector('.record-success')?.textContent).toContain('PHONE');
+    });
+
+    it('shows the hint instead of the form for a prospect', () => {
+      const { fixture, http, el } = render(RAVI_ID, 'ADMIN');
+      respond(http, fixture, RAVI);
+
       expect(el.querySelector('app-record-interaction-form')).toBeNull();
+      expect(el.querySelector('.hint')).not.toBeNull();
     });
 
     it('shows the timeline from the server', () => {

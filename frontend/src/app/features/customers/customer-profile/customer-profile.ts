@@ -57,9 +57,9 @@ export class CustomerProfile {
     () => this.customer()?.status === 'PROSPECT' && (this.isAgent() || this.isAdmin()),
   );
 
-  /** Backlog: only agents record, and only for ACTIVE customers. */
+  /** Backlog: agents and admins record interactions, and only for ACTIVE customers. */
   protected readonly canRecord = computed(
-    () => this.isAgent() && this.customer()?.status === 'ACTIVE',
+    () => (this.isAgent() || this.isAdmin()) && this.customer()?.status === 'ACTIVE',
   );
 
   /** The server already limits this by role: admins get everything, agents get their own entries. */
