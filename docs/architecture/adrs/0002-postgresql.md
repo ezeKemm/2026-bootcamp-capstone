@@ -11,5 +11,5 @@ How to reliably persist application data?
 
 #### Decision
 Choose PostgreSQL for database persistence as it is open-source, reliable, and well-supported.
-Will use PostgreSQL 16 as the system of record for all data storage needs.
+Will use PostgreSQL 18 as the system of record for all data storage needs.
 Managed using Flyway and accessed using Spring JPA 

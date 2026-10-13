@@ -60,7 +60,7 @@ Measurable NFRs for the Northstar CRM slice, covering the five categories the ca
 | | |
 |---|---|
 | **Metric** | Steps needed to get an empty PostgreSQL to the working schema and demo data |
-| **Target** | One application start. Flyway applies `V1`–`V3`; Hibernate only validates (`ddl-auto: validate`), so no hand-made changes are needed |
+| **Target** | One application start. Flyway applies `V1`–`V4`; Hibernate only validates (`ddl-auto: validate`), so no hand-made changes are needed |
 | **Proof** | Every `*IT` test starts from an empty Testcontainers PostgreSQL and passes; `docker compose down -v` followed by a backend start restores Amina and Ravi (README) |
 | **Status** | ✅ Met |
 
@@ -87,6 +87,6 @@ Measurable NFRs for the Northstar CRM slice, covering the five categories the ca
 | | |
 |---|---|
 | **Metric** | (a) Commands needed to run the full app locally from the README; (b) a health endpoint that reports up/down |
-| **Target** | (a) One command for dependencies (`docker compose up -d`) plus one each for backend and frontend; (b) a health endpoint returning `UP` when the database and Kafka are reachable |
+| **Target** | (a) One command for dependencies (`docker compose up -d`) plus one each for backend and frontend; (b) a health endpoint returning `UP` when the database is reachable |
 | **Proof** | (a) README "Run it locally", followed on a clean checkout; (b) can query health endpoint |
 | **Status** | ✅ Met |

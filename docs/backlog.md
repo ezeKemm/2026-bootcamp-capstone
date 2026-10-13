@@ -150,4 +150,4 @@ Acceptance criteria are written as **given / when / then** with the fixtures. Th
 
 - [ ] **Given** a deployed build, **when** the smoke test runs, **then** login and `GET /api/v1/public/customers` succeed.
 
-**Status:** not started. The deploy target is still being decided, and there are no Dockerfiles or deploy workflow yet.
+**Status:** Built. With ActivateCustomerIT, and e2e tests. scripts/cd/smoke-test.sh.
