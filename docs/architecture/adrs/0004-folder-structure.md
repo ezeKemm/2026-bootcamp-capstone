@@ -22,7 +22,7 @@ crm/
 │   ├── src/
 │   │   ├── main/
 │   │   │   ├── java/com/northstar/crm/
-│   │   │   │   ├── common/                    # Cross-cutting
+│   │   │   │   ├── platform/                    # Cross-cutting
 │   │   │   │   │   ├── config/
 │   │   │   │   │   ├── exception/
 │   │   │   │   │   └── security/
@@ -36,8 +36,6 @@ crm/
 │	│	│   │       ├── Service.java
 │	│	│   │       ├── Customer.java
 │	│	│   │       ├── dto/     
-│	│	│   │       ├── event/   
-│	│	│   │       └── mapper/
 │   │   │   └── resources/
 │   │   │       └── application.yml
 │   │   └── test/
@@ -49,5 +47,5 @@ crm/
 │   │       ├── features/  
 │   │       └── shared/   
 │   └── package.json
-└── infra/                    # Infrastructure as Code: Ansible, Terraform, Kubernetes
+└── infra/                    # Infrastructure as Code: Terraform, Kubernetes
 ```

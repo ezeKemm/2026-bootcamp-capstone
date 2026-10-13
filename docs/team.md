@@ -24,7 +24,7 @@ Presentation Lead: Gloria Ma
 ### Commits
 5. [Conventional Commits](https://gist.github.com/qoomon/5dfcdf8eec66a051ecd85625518cfd13): commits to main follow `type(scope): summary` ; the scope and body are optional; written in imperative mood; no punctuation to end; keep short and concise.
 6. Commit types: `feat` , `fix` , `docs` , `refactor` , `test` , `build` , `ci` , `chore` , `perf`
-7. Commit scopes: `backend` , `frontend` , `openshift` , `infra` , `ci` , `docs` .
+7. Commit scopes: `backend` , `frontend` , `k3s` , `infra` , `ci` , `docs` .
 8. Breaking changes are marked by ! after scope; added context is described in `BREAKING CHANGE:` footer in commit message.
 9. Never put secrets, sensitive and real data (PII) , or internal notes in commit messages.
 10. Validate the PR title for the squashed commits meets convention, not every commit message.
@@ -40,18 +40,18 @@ Presentation Lead: Gloria Ma
 ### Communication, Documentation, and Project Management
 17. Project-scoped communication remains centralized in the Slack channel.
 18. The team uses Notion to assist in project management, including a task board and a place to draft documentation; tasks in Notion are maintained daily.
-19. Decisions about architecture are an ADR under `docs/adrs/`, decisions on how the team works are a working agreement under this document `docs/team.md`.
+19. Decisions about architecture are an ADR under `docs/architecture/adrs/`, decisions on how the team works are a working agreement under this document `docs/team.md`.
 20. Changes to decisions are proposed as PRs which all team members must approve. A decision is final once the change is committed to `main`.
 21. Team members are expected to not hesitate to voice when they are struggling or have a concern and should expect constructive support or discussion.
 22. Ownership: Each part of the project has an owner and a reviewer.
 
 ### Definition of Done
-- [ ]  `POST` for Amina returns 201 and a Location header
-- [ ]  Invalid body returns 400 Problem details and does not persist or publish
-- [ ]  CUS-9999 returns 404 and does not persist or publish
-- [ ]  Flyway migration applied; row exists; generated SQL inspected once
-- [ ]  One `CustomerInteractionRecordedV1` per successful create, keyed by customer id, correlation id present
-- [ ]  Consumer dedupes on `eventId`, retries are bounded, poison messages to the a DLT (dead letter topic)
-- [ ]  Unit, MockMvc, JPA, and Kafka testx green twice
-- [ ]  docs/backend-demo.md lets a peer reproduce it with no verbal coaching
-- [ ]  No secrets in the repo, no passwords in the code, no PII in the fixtures, no credentials in the demo.http
+- [x]  `POST` for Amina returns 201 and a Location header
+- [x]  Invalid body returns 400 Problem details and does not persist or publish
+- [x]  CUS-9999 returns 404 and does not persist or publish
+- [x]  Flyway migration applied; row exists; generated SQL inspected once
+- [x]  One `CustomerInteractionRecordedV1` per successful create, keyed by customer id, correlation id present
+- [x]  Consumer dedupes on `eventId`, retries are bounded, poison messages to the a DLT (dead letter topic)
+- [x]  Unit, MockMvc, JPA, and Kafka testx green twice
+- [x]  README.md lets a peer reproduce it with no verbal coaching
+- [x]  No secrets in the repo, no passwords in the code, no PII in the fixtures, no credentials in the demo.http
