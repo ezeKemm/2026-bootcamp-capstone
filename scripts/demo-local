@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+# demo-local: the same demo as `demo`, but on this computer with Docker Compose (profile "full": PostgreSQL, Kafka, backend, frontend).
+#
+#   ./demo-local -u        build and start everything, wait until healthy
+#   ./demo-local -r        reset the database (drop the schema; Flyway re-seeds when the backend restarts)
+#   ./demo-local -e        record one interaction and print the evidence: database row, outbox, API logs, Kafka event
+#   ./demo-local -d        stop everything (data is kept); add -w to also delete the database volume
+#   ./demo-local -s        show the container states
+#   ./demo-local -u -r -e  steps run in this fixed order: up, reset, evidence, down
+#
+# Options
+#   -o   with -e, also save the evidence to demo-evidence/<time>-local/ (default: console only)
+#   -w   with -d, also delete the database volume (docker compose down -v)
+#   -y   do not ask before reset / wipe
+#   -h   this help
+#
+# Settings (environment variables, defaults in brackets)
+#   CRM_AGENT_PASSWORD [agent1]   the agent1 login; the application's default is "agent1" when .env does not set one
+#   API_URL [http://localhost:8080]   WEB_URL [http://localhost:${WEB_PORT:-4200}]   DEMO_WAIT [6] seconds before the evidence is read
+#
+# Run it from the repository root (or anywhere inside it). Needs Docker with the compose plugin, curl and jq.
+set -uo pipefail
+
+CORR_PREFIX="demo"
+CUSTOMER_ID="5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11"
+TOPIC="crm.customer.interactions.v1"
+OUTROOT="${OUTROOT:-demo-evidence}"
+CRM_AGENT_PASSWORD="${CRM_AGENT_PASSWORD:-agent1}"
+API_URL="${API_URL:-http://localhost:8080}"
+
+DO_UP=0; DO_RESET=0; DO_EVIDENCE=0; DO_DOWN=0; DO_STATUS=0; SAVE=0; WIPE=0; ASSUME_YES=0
+
+usage() { sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//'; }
+die() { echo "demo-local: $*" >&2; exit 1; }
+say() { printf '\n== %s\n' "$*"; }
+
+while getopts "urdesowyh" opt; do
+  case "$opt" in
+    u) DO_UP=1 ;; r) DO_RESET=1 ;; e) DO_EVIDENCE=1 ;; d) DO_DOWN=1 ;; s) DO_STATUS=1 ;;
+    o) SAVE=1 ;; w) WIPE=1 ;; y) ASSUME_YES=1 ;; h) usage; exit 0 ;; *) usage; exit 2 ;;
+  esac
+done
+[ $((DO_UP + DO_RESET + DO_EVIDENCE + DO_DOWN + DO_STATUS)) -gt 0 ] || { usage; exit 2; }
+
+command -v docker >/dev/null || die "docker not found"
+command -v jq >/dev/null || die "jq not found"
+docker compose version >/dev/null 2>&1 || die "the docker compose plugin is not available"
+
+# Find the repository root (the directory with compose.yaml), starting at the script's directory.
+dir="$(cd "$(dirname "$0")" && pwd)"
+while [ ! -f "$dir/compose.yaml" ] && [ "$dir" != "/" ]; do dir="$(dirname "$dir")"; done
+[ -f "$dir/compose.yaml" ] || die "compose.yaml not found above $(dirname "$0")"
+cd "$dir" || die "cannot enter $dir"
+[ -f .env ] || die ".env is missing here; run: cp .env.example .env  (DB_NAME, DB_USERNAME, DB_PASSWORD and JWT_SECRET are needed)"
+WEB_PORT_VALUE="$(grep -E '^WEB_PORT=' .env | tail -1 | cut -d= -f2)"
+WEB_URL="${WEB_URL:-http://localhost:${WEB_PORT_VALUE:-4200}}"
+
+dc() { docker compose --profile full "$@"; }
+confirm() { [ "$ASSUME_YES" = 1 ] && return 0; printf '%s [y/N] ' "$1"; read -r a; [ "$a" = y ] || [ "$a" = Y ]; }
+# Run SQL through stdin so quotes and backslash commands need no escaping.
+psql_q() { printf '%s\n' "$1" | docker exec -i crm-postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'; }
+kafka() { docker exec crm-kafka "$@"; }
+
+out() { if [ "$SAVE" = 1 ]; then tee -a "$OUTFILE"; else cat; fi; }
+section() {
+  say "$2"
+  if [ "$SAVE" = 1 ]; then OUTFILE="$OUTDIR/$1.txt"; { echo "# $2"; echo "# $(date -u +%Y-%m-%dT%H:%M:%SZ)"; } > "$OUTFILE"; fi
+}
+runsql() { echo "SQL> $1" | out; psql_q "$1" 2>&1 | out; }
+
+do_status() { say "Containers"; dc ps; }
+
+do_up() {
+  say "Building and starting PostgreSQL, Kafka, backend and frontend (first build can take several minutes)"
+  dc up -d --build --wait || die "docker compose up failed; see: docker compose --profile full logs"
+  echo "backend:  $API_URL/actuator/health"
+  echo "frontend: $WEB_URL/"
+  curl -s --max-time 20 --retry 6 --retry-delay 3 --retry-connrefused "$API_URL/api/v1/public/customers" | grep -q 'Amina Khan' \
+    && echo "seeded customer Amina Khan is present" || echo "WARNING: guest list does not show Amina Khan" >&2
+}
+
+do_reset() {
+  confirm "Reset the local database (all local data is lost)?" || { echo "skipped"; return; }
+  say "Stopping the backend and frontend"
+  dc stop frontend backend || die "could not stop the backend"
+  say "Dropping the schema"
+  psql_q 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;' || die "schema drop failed (is crm-postgres running? try ./demo-local -u)"
+  say "Starting the backend (Flyway recreates the tables and seed data)"
+  dc up -d --wait backend frontend || die "backend did not become healthy"
+  if curl -s --max-time 20 --retry 6 --retry-delay 3 --retry-connrefused "$API_URL/api/v1/public/customers" | grep -q 'Amina Khan'; then
+    echo "reset OK: seeded customer Amina Khan is back"
+  else
+    echo "WARNING: guest list does not show Amina Khan" >&2
+  fi
+}
+
+do_evidence() {
+  if [ "$SAVE" = 1 ]; then OUTDIR="$OUTROOT/$(date +%Y%m%d-%H%M%S)-local"; mkdir -p "$OUTDIR"; fi
+  local corr="$CORR_PREFIX-$(date +%s)" token body code
+
+  section 01-record "API: record one interaction (corr=$corr)"
+  token="$(curl -s --max-time 20 -X POST "$API_URL/api/v1/auth/login" -H 'Content-Type: application/json' \
+    -d "$(jq -n --arg p "$CRM_AGENT_PASSWORD" '{username:"agent1",password:$p}')" | jq -r '.accessToken // empty' 2>/dev/null)"
+  [ -n "$token" ] || die "login failed: user agent1; set CRM_AGENT_PASSWORD, and check that the backend is up (./demo-local -s)"
+  echo "\$ POST /api/v1/customers/$CUSTOMER_ID/interactions   (X-Correlation-Id: $corr)" | out
+  body="$(mktemp)"
+  code="$(curl -s --max-time 20 -o "$body" -w '%{http_code}' -X POST "$API_URL/api/v1/customers/$CUSTOMER_ID/interactions" \
+    -H "Authorization: Bearer $token" -H "X-Correlation-Id: $corr" -H 'Content-Type: application/json' \
+    -d '{"channel":"PHONE","summary":"Demo call recorded for the defense"}')"
+  echo "HTTP $code (expect 201)" | out
+  jq . "$body" 2>/dev/null | out
+  rm -f "$body"
+  echo "(waiting ${DEMO_WAIT:-6}s for the outbox relay and the Kafka consumer)" | out
+  sleep "${DEMO_WAIT:-6}"
+
+  section 02-database "Database: the customer's new interaction row, and the customer's total"
+  runsql "select interaction_id, customer_id, channel, actor, occurred_at, correlation_id, left(summary, 40) as summary from customer_interactions where correlation_id = '$corr';"
+  runsql "select c.full_name, count(i.interaction_id) as interactions from customers c left join customer_interactions i on i.customer_id = c.customer_id where c.customer_id = '$CUSTOMER_ID' group by c.full_name;"
+
+  section 03-outbox "Outbox pattern: the event row written with the interaction, and when it was published"
+  runsql "select event_id, customer_id, created_at, published_at, published_at is not null as published, left(payload, 120) as payload from outbox_event order by created_at desc limit 3;"
+
+  section 04-api-logs "API logs: interaction recorded, outbox event published, event received by the consumer"
+  echo "\$ docker logs crm-backend --since 5m | grep <this request and the event flow>" | out
+  docker logs crm-backend --since 5m 2>&1 | grep -E "corr=$corr|correlationId=$corr|Published outbox event|Received interaction event" | tail -8 | out
+
+  section 05-kafka "Kafka: newest event on $TOPIC"
+  local end n
+  end="$(kafka /opt/kafka/bin/kafka-get-offsets.sh --bootstrap-server localhost:9092 --topic "$TOPIC" 2>/dev/null | head -1)"
+  echo "\$ end offset (topic:partition:offset) = ${end:-unknown}" | out
+  n="${end##*:}"
+  if [ -n "$n" ] && [ "$n" -gt 0 ] 2>/dev/null; then
+    echo "\$ kafka-console-consumer --topic $TOPIC --partition 0 --offset $((n - 1)) --max-messages 1" | out
+    kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic "$TOPIC" \
+      --partition 0 --offset "$((n - 1))" --max-messages 1 --timeout-ms 10000 2>&1 | grep -v '^Processed a total' | out
+  else
+    echo "no events on the topic yet" | out
+  fi
+
+  if [ "$SAVE" = 1 ]; then say "evidence also saved in $OUTDIR/ (the token is never written)"; fi
+}
+
+do_down() {
+  if [ "$WIPE" = 1 ]; then
+    confirm "Stop everything AND delete the local database volume?" || { echo "skipped"; return; }
+    say "Stopping and removing containers and the database volume"
+    dc down -v
+  else
+    say "Stopping and removing containers (the database volume is kept)"
+    dc down
+  fi
+}
+
+[ "$DO_STATUS" = 1 ] && do_status
+[ "$DO_UP" = 1 ] && do_up
+[ "$DO_RESET" = 1 ] && do_reset
+[ "$DO_EVIDENCE" = 1 ] && do_evidence
+[ "$DO_DOWN" = 1 ] && do_down
+exit 0

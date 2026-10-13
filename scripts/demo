@@ -1,0 +1,223 @@
+#!/usr/bin/env bash
+# demo: start, reset, show evidence for, and stop the team's OWN k3s instances. Never touches the instructor's shared instance.
+#
+#   ./demo -u            start the instances and wait until the pods are ready
+#   ./demo -r            reset the database (drop the schema; Flyway re-seeds on API start)
+#   ./demo -e            record one interaction and print the evidence: database row, outbox, API logs, Kafka event
+#   ./demo -d            stop the instances
+#   ./demo -s            show the instance states
+#   ./demo -u -r -e      steps run in this fixed order: up, reset, evidence, down (flag order does not matter)
+#
+# Options
+#   -E dev|stage|all     environment to act on (default: dev). "all" = both
+#   -o                   with -e, also save the evidence to demo-evidence/<time>-<env>/ (default: console only)
+#   -y                   do not ask before reset / stop
+#   -h                   this help
+#
+# Settings (environment variables, defaults in brackets)
+#   AWS_REGION [us-west-2]   SSH_KEY [~/.ssh/crm-k3s]
+#   DEV_EIP / STAGE_EIP      Elastic IPs of the two nodes (from `terraform output instances`)
+#   CRM_AGENT_PASSWORD       demo login for agent1; asked for (hidden) when -e needs it and it is not set
+#
+# Needs: aws CLI (logged in), ssh, curl, jq. Works with bash 3.2 (macOS) and later.
+set -uo pipefail
+
+AWS_REGION="${AWS_REGION:-us-west-2}"
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/crm-k3s}"
+DEV_EIP="${DEV_EIP:-32.188.87.148}"
+STAGE_EIP="${STAGE_EIP:-32.189.182.183}"
+CORR="lab-request-001"
+CUSTOMER_ID="5d1c2e0c-3a0d-4b1e-9f9d-8a7d9f4a1c11"
+TOPIC="crm.customer.interactions.v1"
+OUTROOT="${OUTROOT:-demo-evidence}"
+
+DO_UP=0; DO_RESET=0; DO_EVIDENCE=0; DO_DOWN=0; DO_STATUS=0; ASSUME_YES=0; SAVE=0; ENVSEL="dev"
+
+usage() { sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; }
+die() { echo "demo: $*" >&2; exit 1; }
+say() { printf '\n== %s\n' "$*"; }
+
+while getopts "urdesoE:yh" opt; do
+  case "$opt" in
+    o) SAVE=1 ;; u) DO_UP=1 ;; r) DO_RESET=1 ;; e) DO_EVIDENCE=1 ;; d) DO_DOWN=1 ;; s) DO_STATUS=1 ;;
+    E) ENVSEL="$OPTARG" ;; y) ASSUME_YES=1 ;; h) usage; exit 0 ;; *) usage; exit 2 ;;
+  esac
+done
+[ $((DO_UP + DO_RESET + DO_EVIDENCE + DO_DOWN + DO_STATUS)) -gt 0 ] || { usage; exit 2; }
+
+case "$ENVSEL" in dev) ENVS="dev" ;; stage) ENVS="stage" ;; all) ENVS="dev stage" ;; *) die "-E must be dev, stage or all" ;; esac
+command -v aws >/dev/null || die "aws CLI not found"
+command -v jq >/dev/null || die "jq not found"
+
+eip_of() { if [ "$1" = dev ]; then echo "$DEV_EIP"; else echo "$STAGE_EIP"; fi; }
+ns_of() { echo "crm-$1"; }
+confirm() { [ "$ASSUME_YES" = 1 ] && return 0; printf '%s [y/N] ' "$1"; read -r a; [ "$a" = y ] || [ "$a" = Y ]; }
+
+# Remote helpers: run kubectl on the node. $EIP and $NS are set per environment by use_env.
+use_env() { ENV="$1"; EIP="$(eip_of "$1")"; NS="$(ns_of "$1")"; }
+SSH_OPTS=(-i "$SSH_KEY" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=8 -o ServerAliveInterval=15)
+rsh() { ssh "${SSH_OPTS[@]}" "ubuntu@$EIP" "$@"; }
+k() { rsh sudo kubectl -n "$NS" "$@"; }
+# Run SQL through stdin so quotes and backslash commands need no escaping.
+psql_q() { printf '%s\n' "$1" | rsh "sudo kubectl -n $NS exec -i postgres-0 -- sh -c 'psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"'"; }
+kafka() { k exec kafka-0 -- "$@"; }
+
+# Instances are selected by their Elastic IPs, so the shared instance can never match.
+instance_ids() {
+  local ips="" e
+  for e in $ENVS; do ips="${ips:+$ips,}$(eip_of "$e")"; done
+  aws ec2 describe-instances --region "$AWS_REGION" --filters "Name=ip-address,Values=$ips" \
+    --query "Reservations[].Instances[].InstanceId" --output text
+}
+guard_ids() {
+  local id name
+  for id in "$@"; do
+    name="$(aws ec2 describe-instances --region "$AWS_REGION" --instance-ids "$id" \
+      --query "Reservations[0].Instances[0].Tags[?Key=='Name']|[0].Value" --output text)"
+    case "$name" in *shared*) die "$id is '$name' (the shared instance). Refusing." ;; esac
+  done
+}
+
+status() {
+  say "Instance states ($ENVS)"
+  local e
+  for e in $ENVS; do
+    aws ec2 describe-instances --region "$AWS_REGION" --filters "Name=ip-address,Values=$(eip_of "$e")" \
+      --query "Reservations[].Instances[].[InstanceId,State.Name,PublicIpAddress,InstanceType]" --output table
+  done
+}
+
+wait_ready() {
+  say "[$ENV] waiting for SSH"
+  local i
+  for i in $(seq 1 60); do rsh true 2>/dev/null && break; sleep 5; done
+  rsh true 2>/dev/null || die "[$ENV] SSH did not come up. Check the key (-i), your IP in ssh_cidrs, and the instance state."
+  say "[$ENV] waiting for k3s and pods"
+  for i in $(seq 1 60); do
+    out="$(k get pods --no-headers 2>/dev/null || true)"
+    # ready = at least one pod, every pod Running/Completed, and READY n/n on each
+    if [ -n "$out" ] && ! echo "$out" | grep -qv -E ' (Running|Completed) ' \
+       && echo "$out" | awk '{split($2,a,"/"); if (a[1]!=a[2]) bad=1} END{exit bad}'; then
+      echo "$out"; return 0
+    fi
+    sleep 5
+  done
+  k get pods || true
+  die "[$ENV] pods not ready after 5 minutes"
+}
+
+do_up() {
+  say "Starting instances ($ENVS) in $AWS_REGION"
+  local ids; ids=($(instance_ids))
+  [ "${#ids[@]}" -gt 0 ] || die "no instance has the Elastic IP(s) for: $ENVS"
+  guard_ids "${ids[@]}"
+  echo "instances: ${ids[*]}"
+  aws ec2 start-instances --region "$AWS_REGION" --instance-ids "${ids[@]}" >/dev/null || die "start-instances failed"
+  aws ec2 wait instance-running --region "$AWS_REGION" --instance-ids "${ids[@]}" || die "instances did not reach running"
+  local e; for e in $ENVS; do use_env "$e"; wait_ready; echo "[$e] ready: http://$EIP/"; done
+}
+
+do_reset() {
+  local e; for e in $ENVS; do
+    use_env "$e"
+    confirm "Reset the $e database on $EIP (all demo data is lost)?" || { echo "skipped $e"; continue; }
+    say "[$e] stopping the API"
+    k scale deploy/crm-api --replicas=0 || die "scale down failed"
+    k wait --for=delete pod -l app.kubernetes.io/name=crm-api --timeout=120s >/dev/null 2>&1 || true
+    say "[$e] dropping the schema"
+    psql_q 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;' || die "schema drop failed"
+    say "[$e] starting the API (Flyway recreates the tables and seed data)"
+    k scale deploy/crm-api --replicas=1 || die "scale up failed"
+    k rollout status deploy/crm-api --timeout=300s || die "API did not become ready"
+    if curl -s --max-time 20 --retry 6 --retry-delay 4 --retry-connrefused "http://$EIP/api/v1/public/customers" | grep -q 'Amina Khan'; then
+      echo "[$e] reset OK: seeded customer Amina Khan is back"
+    else
+      echo "[$e] WARNING: guest list does not show Amina Khan" >&2
+    fi
+  done
+}
+
+# Evidence. Everything is printed to the console. With -o it is also saved to demo-evidence/<time>-<env>/NN-name.txt.
+out() { if [ "$SAVE" = 1 ]; then tee -a "$OUTFILE"; else cat; fi; }
+section() { # section <file-name> <title>  (then run the commands; output goes through out)
+  say "[$ENV] $2"
+  if [ "$SAVE" = 1 ]; then OUTFILE="$OUTDIR/$1.txt"; { echo "# $2"; echo "# $(date -u +%Y-%m-%dT%H:%M:%SZ) env=$ENV"; } > "$OUTFILE"; fi
+}
+run() { # print the real command (not the helper name), then its output
+  case "$1" in
+    k) shift; echo "\$ kubectl -n $NS $*" | out; k "$@" 2>&1 | out ;;
+    kafka) shift; echo "\$ kubectl -n $NS exec kafka-0 -- $*" | out; kafka "$@" 2>&1 | out ;;
+    *) echo "\$ $*" | out; "$@" 2>&1 | out ;;
+  esac
+}
+runsql() { echo "SQL> $1" | out; psql_q "$1" 2>&1 | out; }
+
+do_evidence() {
+  if [ -z "${CRM_AGENT_PASSWORD:-}" ]; then
+    printf 'CRM_AGENT_PASSWORD for agent1 (hidden): '; read -r -s CRM_AGENT_PASSWORD; echo; export CRM_AGENT_PASSWORD
+  fi
+  local e; for e in $ENVS; do
+    use_env "$e"
+    if [ "$SAVE" = 1 ]; then OUTDIR="$OUTROOT/$(date +%Y%m%d-%H%M%S)-$e"; mkdir -p "$OUTDIR"; fi
+    local base="http://$EIP" corr="demo-$(date +%s)" token body code
+
+    section 01-record "API: record one interaction (corr=$corr)"
+    token="$(curl -s --max-time 20 -X POST "$base/api/v1/auth/login" -H 'Content-Type: application/json' \
+      -d "$(jq -n --arg p "$CRM_AGENT_PASSWORD" '{username:"agent1",password:$p}')" | jq -r '.accessToken // empty' 2>/dev/null)"
+    [ -n "$token" ] || { echo "login failed: user is agent1; check CRM_AGENT_PASSWORD" | out; continue; }
+    echo "\$ POST /api/v1/customers/$CUSTOMER_ID/interactions   (X-Correlation-Id: $corr)" | out
+    body="$(mktemp)"
+    code="$(curl -s --max-time 20 -o "$body" -w '%{http_code}' -X POST "$base/api/v1/customers/$CUSTOMER_ID/interactions" \
+      -H "Authorization: Bearer $token" -H "X-Correlation-Id: $corr" -H 'Content-Type: application/json' \
+      -d '{"channel":"PHONE","summary":"Demo call recorded for the defense"}')"
+    echo "HTTP $code (expect 201)" | out
+    jq . "$body" 2>/dev/null | out
+    rm -f "$body"
+    echo "(waiting ${DEMO_WAIT:-8}s for the outbox relay and the Kafka consumer)" | out
+    sleep "${DEMO_WAIT:-8}"
+
+    section 02-database "Database: the customer's new interaction row, and the customer's total"
+    runsql "select interaction_id, customer_id, channel, actor, occurred_at, correlation_id, left(summary, 40) as summary from customer_interactions where correlation_id = '$corr';"
+    runsql "select c.full_name, count(i.interaction_id) as interactions from customers c left join customer_interactions i on i.customer_id = c.customer_id where c.customer_id = '$CUSTOMER_ID' group by c.full_name;"
+
+    section 03-outbox "Outbox pattern: the event row written with the interaction, and when it was published"
+    runsql "select event_id, customer_id, created_at, published_at, published_at is not null as published, left(payload, 120) as payload from outbox_event order by created_at desc limit 3;"
+
+    section 04-api-logs "API logs: interaction recorded, outbox event published, event received by the consumer"
+    echo "\$ kubectl -n $NS logs deploy/crm-api --since=5m | grep <this request and the event flow>" | out
+    k logs deploy/crm-api --since=5m 2>&1 | grep -E "corr=$corr|correlationId=$corr|Published outbox event|Received interaction event" | tail -8 | out
+
+    section 05-kafka "Kafka: newest event on $TOPIC"
+    local end n
+    end="$(kafka /opt/kafka/bin/kafka-get-offsets.sh --bootstrap-server localhost:9092 --topic "$TOPIC" 2>/dev/null | head -1)"
+    echo "\$ end offset (topic:partition:offset) = ${end:-unknown}" | out
+    n="${end##*:}"
+    if [ -n "$n" ] && [ "$n" -gt 0 ] 2>/dev/null; then
+      echo "\$ kafka-console-consumer --topic $TOPIC --partition 0 --offset $((n - 1)) --max-messages 1" | out
+      kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic "$TOPIC" \
+        --partition 0 --offset "$((n - 1))" --max-messages 1 --timeout-ms 10000 2>&1 | grep -v '^Processed a total' | out
+    else
+      echo "no events on the topic yet" | out
+    fi
+
+    if [ "$SAVE" = 1 ]; then say "[$e] evidence also saved in $OUTDIR/ (the token and password are never written)"; fi
+  done
+}
+
+do_down() {
+  say "Stopping instances ($ENVS) in $AWS_REGION"
+  local ids; ids=($(instance_ids))
+  [ "${#ids[@]}" -gt 0 ] || die "no instance has the Elastic IP(s) for: $ENVS"
+  guard_ids "${ids[@]}"
+  echo "instances: ${ids[*]}"
+  confirm "Stop these instances?" || { echo "skipped"; return; }
+  aws ec2 stop-instances --region "$AWS_REGION" --instance-ids "${ids[@]}" >/dev/null || die "stop-instances failed"
+  aws ec2 wait instance-stopped --region "$AWS_REGION" --instance-ids "${ids[@]}" && echo "stopped"
+}
+
+[ "$DO_STATUS" = 1 ] && status
+[ "$DO_UP" = 1 ] && do_up
+[ "$DO_RESET" = 1 ] && do_reset
+[ "$DO_EVIDENCE" = 1 ] && do_evidence
+[ "$DO_DOWN" = 1 ] && do_down
+exit 0
